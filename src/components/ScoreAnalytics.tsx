@@ -597,7 +597,7 @@ export default function ScoreAnalytics({ triggerCount, onSelectCandidate }: Scor
             <div className="inline-flex gap-2 text-indigo-700 uppercase font-mono text-[11px] tracking-widest font-extrabold pb-1">
               <span>National EM Resident Joint Mock Exam</span>
               <span>•</span>
-              <span>2026 年度聯合住院醫師面試</span>
+              <span>2026住院醫師聯合面試訓練</span>
             </div>
             <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900 font-sans">
               急診醫學部聯合住院醫師面試考生回饋單

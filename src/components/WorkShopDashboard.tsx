@@ -520,7 +520,7 @@ export default function WorkShopDashboard({ onStartScoring }: WorkShopDashboardP
               台北國泰醫院 ＆ 臺大醫院急診教學小組聯合主辦
             </div>
             <h2 className="text-xl sm:text-2xl font-serif text-[#3D3833] font-bold tracking-tight">
-              2026 年台北國泰醫院、臺大醫院急診醫學部聯合住院醫師面試
+              2026住院醫師聯合面試訓練
             </h2>
             <p className="text-xs text-[#5C5650] max-w-2xl leading-relaxed">
               依據時間到 Room 1、Room 2 進行面試練習。

@@ -36,7 +36,7 @@ export const TIMETABLE: TimetableSlot[] = [
 export const CASE_SCENARIOS = [
   {
     id: "brash-syndrome",
-    title: "2026 年台北國泰醫院、臺大醫院急診醫學部聯合住院醫師面試",
+    title: "2026住院醫師聯合面試訓練",
     topic: "BRASH Syndrome (心搏過慢、高血鉀、AKI與藥物引起之臨床路徑)",
     author: "鍾睿元",
     patientProfile: {
@@ -113,7 +113,7 @@ export const CASE_SCENARIOS = [
   },
   {
     id: "uterine-rupture",
-    title: "2026 年台北國泰醫院、臺大醫院急診醫學部聯合住院醫師面試 (Case 2)",
+    title: "2026住院醫師聯合面試訓練 (Case 2)",
     topic: "Uterine Rupture (子宮破裂、失血性休克、敗血症)",
     author: "鍾睿元",
     patientProfile: {

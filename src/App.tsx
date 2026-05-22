@@ -242,7 +242,7 @@ export default function App() {
             </div>
             <div>
               <h1 className="text-sm font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
-                2026年台北國泰醫院、臺大醫院急診醫學部聯合住院醫師面試工作坊
+                2026住院醫師聯合面試訓練
                 <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-extrabold bg-teal-100 text-teal-800 border border-teal-200 uppercase font-mono tracking-wider">
                   新型個別評核
                 </span>
