@@ -15,13 +15,23 @@ export default function ClinicalScenario({ caseIdx = 0 }: { caseIdx?: number }) 
   const { patientProfile, labReport, clinicalLogic } = scenario;
   const isUterineRupture = scenario.id === "uterine-rupture";
 
-  // Synchronized clinical information visibility toggles
-  const [visibility, setVisibility] = useState({
-    isHistoryRevealed: false,
-    isLabsRevealed: false,
-    isCxrRevealed: false,
-    isBrashRevealed: false,
-    isEcgRevealed: false,
+  // Synchronized clinical information visibility toggles (try to retrieve from local cache first)
+  const [visibility, setVisibility] = useState(() => {
+    try {
+      const saved = localStorage.getItem("scenario_visibility");
+      if (saved) {
+        return JSON.parse(saved);
+      }
+    } catch (e) {
+      console.error("Failed to read scenario_visibility from localStorage", e);
+    }
+    return {
+      isHistoryRevealed: false,
+      isLabsRevealed: false,
+      isCxrRevealed: false,
+      isBrashRevealed: false,
+      isEcgRevealed: false,
+    };
   });
 
   const [selectedEcg, setSelectedEcg] = useState<"today" | "previous">("today");
@@ -33,13 +43,27 @@ export default function ClinicalScenario({ caseIdx = 0 }: { caseIdx?: number }) 
   useEffect(() => {
     const fetchVisibility = () => {
       fetch("/api/scenario-visibility")
-        .then((res) => res.json())
+        .then((res) => {
+          if (!res.ok) throw new Error("API not active on this host");
+          return res.json();
+        })
         .then((data) => {
           if (data.success && data.visibility) {
             setVisibility(data.visibility);
+            try {
+              localStorage.setItem("scenario_visibility", JSON.stringify(data.visibility));
+            } catch (e) {}
           }
         })
-        .catch((err) => console.error("Error fetching scenario visibility:", err));
+        .catch((err) => {
+          // On static host, silently check cache if needed or retain state
+          try {
+            const saved = localStorage.getItem("scenario_visibility");
+            if (saved) {
+              setVisibility(JSON.parse(saved));
+            }
+          } catch (e) {}
+        });
     };
 
     fetchVisibility();
@@ -49,18 +73,35 @@ export default function ClinicalScenario({ caseIdx = 0 }: { caseIdx?: number }) 
 
   const handleToggleVisibility = (key: keyof typeof visibility) => {
     const newVal = !visibility[key];
+    
+    // 1. Optimistic local & cache state update to support instant responsiveness (even in offline/static environments)
+    const updatedVisibility = { ...visibility, [key]: newVal };
+    setVisibility(updatedVisibility);
+    try {
+      localStorage.setItem("scenario_visibility", JSON.stringify(updatedVisibility));
+    } catch (e) {}
+
+    // 2. Dispatch backend update if server-side capability exists
     fetch("/api/scenario-visibility", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ [key]: newVal }),
     })
-      .then((res) => res.json())
+      .then((res) => {
+        if (!res.ok) throw new Error("API endpoint not reachable");
+        return res.json();
+      })
       .then((data) => {
         if (data.success && data.visibility) {
           setVisibility(data.visibility);
+          try {
+            localStorage.setItem("scenario_visibility", JSON.stringify(data.visibility));
+          } catch (e) {}
         }
       })
-      .catch((err) => console.error("Error updating scenario visibility:", err));
+      .catch((err) => {
+        console.warn("Backend API not reachable/available. Using local cache fallback.", err.message);
+      });
   };
 
   const handlePinKeyPress = (num: string) => {
