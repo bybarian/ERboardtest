@@ -1,0 +1,6 @@
+{
+  "name": "急診住院醫師聯合面試工作坊 ＆ 新型評分系統",
+  "description": "專門為台大與國泰急診醫學部聯合住院醫師面試工作坊設計，提供完整時程、分組、對應 BRASH 症候群之新型個別面試數位評分與雷達圖雷盤析報告。",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

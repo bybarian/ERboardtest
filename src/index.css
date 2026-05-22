@@ -1,0 +1,96 @@
+@import url('https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Outfit:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --color-slate-50: #FAF9F6;
+  --color-slate-100: #F2F0EB;
+  --color-slate-150: #ECE9DF;
+  --color-slate-205: #E8E4D9;
+  --color-slate-200: #E8E4D9;
+  --color-slate-300: #DDD9CD;
+  --color-slate-400: #A8A297;
+  --color-slate-450: #8E877C;
+  --color-slate-500: #7A746B;
+  --color-slate-550: #6B655C;
+  --color-slate-600: #5C5650;
+  --color-slate-650: #4A443F;
+  --color-slate-700: #4A443F;
+  --color-slate-800: #3D3833;
+  --color-slate-850: #2C2622;
+  --color-slate-900: #221D1A;
+  --color-slate-950: #14110E;
+
+  --color-teal-50: #F3F5F2;
+  --color-teal-100: #E2E8E3;
+  --color-teal-205: #D4DDD5;
+  --color-teal-200: #C2CECD;
+  --color-teal-300: #A4B6A6;
+  --color-teal-400: #8E9F92;
+  --color-teal-500: #7A8B7E;
+  --color-teal-600: #6A7C6E;
+  --color-teal-700: #5A6D5E;
+  --color-teal-800: #4B5A4E;
+  --color-teal-900: #38423A;
+  --color-teal-950: #1D231F;
+
+  --color-emerald-50: #EBF1EA;
+  --color-emerald-100: #D8E4D6;
+  --color-emerald-200: #ADC2A9;
+  --color-emerald-300: #86A281;
+  --color-emerald-400: #62825D;
+  --color-emerald-500: #7A8B7E;
+  --color-emerald-555: #7A8B7E;
+  --color-emerald-600: #7A8B7E;
+  --color-emerald-700: #5F6E62;
+  --color-emerald-800: #445046;
+  --color-emerald-900: #29322A;
+
+  --color-indigo-50: #F0EEE9;
+  --color-indigo-100: #E4E1D7;
+  --color-indigo-200: #CBC5B3;
+  --color-indigo-350: #AAA08A;
+  --color-indigo-400: #938971;
+  --color-indigo-500: #867962;
+  --color-indigo-650: #736750;
+  --color-indigo-600: #736750;
+  --color-indigo-700: #5D533F;
+  --color-indigo-800: #473F2F;
+  --color-indigo-900: #312A1F;
+  --color-indigo-950: #1C1710;
+
+  --font-serif: "Lora", "Georgia", "Cambria", serif;
+  --font-sans: "Inter", system-ui, -apple-system, sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+  --font-display: "Outfit", sans-serif;
+}
+
+body {
+  background-color: #FAF9F6;
+  color: #4A443F;
+  font-family: "Inter", system-ui, -apple-system, sans-serif;
+}
+
+/* Scrollbar customization matching Natural Tones styling */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #F2F0EB;
+}
+::-webkit-scrollbar-thumb {
+  background: #C2CECD;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #7A8B7E;
+}
+
+/* Subtle transitions and text pairings */
+h1, h2, h3, h4, th {
+  font-family: "Outfit", "Inter", sans-serif;
+}
+
+.font-serif-active {
+  font-family: "Lora", serif;
+}
