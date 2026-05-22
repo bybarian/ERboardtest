@@ -357,9 +357,12 @@ export default function WorkShopDashboard({ onStartScoring }: WorkShopDashboardP
     }
 
     const stations = isRoom1 ? ["A", "B"] : ["C", "D", "E"];
+    const gridColsClass = isRoom1 
+      ? "grid grid-cols-1 sm:grid-cols-2 gap-2 py-1" 
+      : "grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-2 py-1";
 
     return (
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 py-1">
+      <div className={gridColsClass}>
         {stations.map((group) => {
           const isPracticeOdd = (slotIdx === 1 || slotIdx === 3 || slotIdx === 6 || slotIdx === 8);
           const practiceId = `${group}${isPracticeOdd ? "1" : "2"}`;
@@ -393,38 +396,38 @@ export default function WorkShopDashboard({ onStartScoring }: WorkShopDashboardP
           return (
             <div 
               key={group}
-              className={`p-2.5 rounded-xl border text-left transition-all relative ${
+              className={`p-2 rounded-xl border text-left transition-all relative ${
                 leadTutor 
                   ? "bg-rose-50/25 border-rose-200 ring-1 ring-rose-100/30" 
                   : "bg-[#FAF9F6]/40 border-[#E8E4D9] hover:bg-white"
               }`}
             >
-              <div className="flex items-center justify-between border-b border-[#E8E4D9]/80 pb-1 mb-1.5">
+              <div className="flex items-center justify-between border-b border-[#E8E4D9]/80 pb-1 mb-1">
                 <span className="text-[10px] font-bold text-[#7A8B7E] font-serif uppercase tracking-wider block">
                   分站 {group}
                 </span>
                 {leadTutor && (
                   <span className="text-[8px] bg-rose-100 text-rose-800 px-1 py-0.2 rounded font-extrabold animate-pulse">
-                    老師進行模擬考試
+                    老師正式考
                   </span>
                 )}
               </div>
 
-              <div className="space-y-1.5 text-[11px] font-sans">
+              <div className="space-y-1 text-[11px] font-sans">
                 {/* 1. Practice Candidate */}
-                <div className="flex items-center justify-between gap-1">
+                <div className="flex items-center justify-between gap-1 flex-wrap sm:flex-nowrap">
                   <span className="text-[10px] text-[#A8A297] shrink-0">受測者:</span>
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
                       setSelectedParticipant(practiceId);
                     }}
-                    className={`px-1.5 py-0.5 text-[10px] font-mono font-bold rounded cursor-pointer transition-all truncate max-w-[95px] ${
+                    className={`px-1.5 py-0.5 text-[10px] font-mono font-bold rounded cursor-pointer transition-all truncate max-w-[130px] w-full text-center sm:text-left ${
                       group === "A" || group === "B" || group === "E"
                         ? "bg-amber-50 text-amber-800 border border-amber-200"
                         : "bg-teal-50 text-teal-800 border border-teal-200"
                     } ${isPracticeHighlighted ? "ring-2 ring-amber-500 scale-105 font-extrabold" : ""}`}
-                    title={`1對1受測: ${practiceId}`}
+                    title={`1對1受測: ${practiceId} ${practiceName}`}
                   >
                     {practiceId} {practiceName}
                   </button>
@@ -433,14 +436,14 @@ export default function WorkShopDashboard({ onStartScoring }: WorkShopDashboardP
                 {/* 2. Peer Examiner or Instructor / Observer layout depending on leadTutor */}
                 {leadTutor ? (
                   <>
-                    <div className="flex items-center justify-between gap-1">
+                    <div className="flex items-center justify-between gap-1 flex-wrap sm:flex-nowrap">
                       <span className="text-[10px] text-rose-700 font-bold shrink-0">考官:</span>
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
                           setSelectedParticipant(leadTutor);
                         }}
-                        className={`px-1.5 py-0.5 text-[10px] bg-slate-800 text-white rounded font-bold cursor-pointer transition-all truncate max-w-[95px] ${
+                        className={`px-1.5 py-0.5 text-[10px] bg-slate-800 text-white rounded font-bold cursor-pointer transition-all truncate max-w-[130px] w-full text-center sm:text-left ${
                           isTutorHighlighted ? "ring-2 ring-rose-500 scale-105" : ""
                         }`}
                         title={`考核指導導師: ${tutorName}`}
@@ -449,38 +452,38 @@ export default function WorkShopDashboard({ onStartScoring }: WorkShopDashboardP
                       </button>
                     </div>
 
-                    <div className="flex items-center justify-between gap-1">
+                    <div className="flex items-center justify-between gap-1 flex-wrap sm:flex-nowrap">
                       <span className="text-[10px] text-[#A8A297] shrink-0">觀摩者:</span>
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
                           setSelectedParticipant(examinerId);
                         }}
-                        className={`px-1.5 py-0.5 text-[10px] font-mono font-bold rounded cursor-pointer transition-all truncate max-w-[95px] ${
+                        className={`px-1.5 py-0.5 text-[10px] font-mono font-bold rounded cursor-pointer transition-all truncate max-w-[130px] w-full text-center sm:text-left ${
                           group === "A" || group === "B" || group === "E"
                             ? "bg-teal-50/70 text-teal-800 border border-teal-150"
                             : "bg-amber-50/70 text-amber-800 border border-amber-150"
                         } ${isExaminerHighlighted ? "ring-2 ring-amber-500 scale-105 font-extrabold" : ""}`}
-                        title={`臨床觀摩: ${examinerId}`}
+                        title={`臨床觀摩: ${examinerId} ${examinerName}`}
                       >
                         {examinerId} {examinerName}
                       </button>
                     </div>
                   </>
                 ) : (
-                  <div className="flex items-center justify-between gap-1">
+                  <div className="flex items-center justify-between gap-1 flex-wrap sm:flex-nowrap">
                     <span className="text-[10px] text-[#A8A297] shrink-0">考官:</span>
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
                         setSelectedParticipant(examinerId);
                       }}
-                      className={`px-1.5 py-0.5 text-[10px] font-mono font-bold rounded cursor-pointer transition-all truncate max-w-[95px] ${
+                      className={`px-1.5 py-0.5 text-[10px] font-mono font-bold rounded cursor-pointer transition-all truncate max-w-[130px] w-full text-center sm:text-left ${
                         group === "A" || group === "B" || group === "E"
                           ? "bg-teal-50/70 text-teal-800 border border-teal-150"
                           : "bg-amber-50/70 text-amber-800 border border-amber-150"
                       } ${isExaminerHighlighted ? "ring-2 ring-amber-500 scale-105 font-extrabold" : ""}`}
-                      title={`對等評分: ${examinerId}`}
+                      title={`對等評分: ${examinerId} ${examinerName}`}
                     >
                       {examinerId} {examinerName}
                     </button>
@@ -622,24 +625,24 @@ export default function WorkShopDashboard({ onStartScoring }: WorkShopDashboardP
             </div>
 
             <div className="p-4 overflow-x-auto">
-              <table className="w-full text-left border-collapse min-w-[620px]">
+              <table className="w-full text-left border-collapse min-w-[1050px]">
                 <thead>
                   <tr className="border-b border-[#E8E4D9] text-[10px] uppercase font-bold text-[#A8A297] bg-[#FAF9F6]">
-                    <th className="py-2.5 px-3">時程階段</th>
-                    <th className="py-2.5 px-3">時間段</th>
-                    <th className="py-2.5 px-3 border-l border-[#E8E4D9]">
+                    <th className="py-2.5 px-3 w-[70px]">時程階段</th>
+                    <th className="py-2.5 px-3 w-[100px]">時間段</th>
+                    <th className="py-2.5 px-3 border-l border-[#E8E4D9] w-[38%] min-w-[340px]">
                       <span className="flex items-center gap-1.5 font-semibold text-[#4A443F]">
                         <span className="w-2.5 h-2.5 rounded-full bg-amber-500 inline-block"></span>
                         🚪 Room 1 婦產科醫局試場
                       </span>
                     </th>
-                    <th className="py-2.5 px-3 border-l border-[#E8E4D9]">
+                    <th className="py-2.5 px-3 border-l border-[#E8E4D9] w-[48%] min-w-[460px]">
                       <span className="flex items-center gap-1.5 font-semibold text-[#4A443F]">
                         <span className="w-2.5 h-2.5 rounded-full bg-teal-500 inline-block"></span>
                         🚪 Room 2 兒科醫局試場
                       </span>
                     </th>
-                    <th className="py-2.5 px-2 text-center">設定狀態</th>
+                    <th className="py-2.5 px-2 text-center w-[100px]">設定狀態</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#E8E4D9] text-xs">
