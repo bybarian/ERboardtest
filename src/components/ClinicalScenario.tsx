@@ -368,7 +368,7 @@ export default function ClinicalScenario({ caseIdx = 0 }: { caseIdx?: number }) 
                   {(isExaminerMode || visibility.isEcgRevealed) ? (
                     <div className="p-4 bg-slate-900 flex flex-col items-center justify-center animate-fade-in">
                       <img 
-                        src={selectedEcg === "today" ? "/ecg1.png" : "/ecg2.png"} 
+                        src={selectedEcg === "today" ? "ecg1.png" : "ecg2.png"} 
                         alt="ECG" 
                         className="max-h-64 border border-slate-700 bg-white" 
                         onError={(e) => {
@@ -463,7 +463,7 @@ export default function ClinicalScenario({ caseIdx = 0 }: { caseIdx?: number }) 
                     <div className="text-center animate-fade-in">
                       {!cxrFailed ? (
                         <img 
-                          src="/cxr.png" 
+                          src="cxr.png" 
                           alt="CXR" 
                           className="w-full max-h-40 object-contain rounded border bg-white" 
                           onError={(e) => {

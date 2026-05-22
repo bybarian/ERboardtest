@@ -203,15 +203,15 @@ export default function App() {
                 </div>
               ) : !logoFailed ? (
                 <img
-                  src="/logo.png"
+                  src="logo.png"
                   alt="Logo"
                   className="h-10 w-auto object-contain shrink-0 max-w-[120px]"
                   onError={(e) => {
                     const tgt = e.currentTarget;
-                    if (tgt.src.endsWith('/logo.png')) {
-                      tgt.src = '/logo.jpg';
-                    } else if (tgt.src.endsWith('/logo.jpg')) {
-                      tgt.src = '/logo.svg';
+                    if (tgt.src.endsWith('logo.png')) {
+                      tgt.src = 'logo.jpg';
+                    } else if (tgt.src.endsWith('logo.jpg')) {
+                      tgt.src = 'logo.svg';
                     } else {
                       setLogoFailed(true);
                     }

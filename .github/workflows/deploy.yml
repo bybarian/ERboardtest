@@ -21,15 +21,16 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-size: 20
-          node-version: 18
+          node-version: 20
           cache: 'npm'
 
       - name: Install Dependencies
         run: npm ci || npm install
 
       - name: Build Application (SPA Dist)
-        run: npm run build
+        run: |
+          npm run build
+          touch dist/.nojekyll
         env:
           NODE_ENV: production
 
