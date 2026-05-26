@@ -23,22 +23,22 @@ const DEFAULT_SCORE_CARD = (candidateId: string): ScoreCard => {
     date: new Date().toISOString().split("T")[0],
     
     // Section 1: 病史詢問 (Max: 15 checklist + 7 global = 22, Weight: 23%)
-    history: { s1: 0, s2: 0, s3: 0, s4: 0, s5: 0, s6: 0, s7: 0, s8: 0, global: 0, feedback: "" },
+    history: { s1: 0, s2: 0, s3: 0, s4: 0, s5: 0, s6: 0, s7: 0, s8: 0, s9: 0, s10: 0, s11: 0, global: 0, feedback: "" },
     
     // Section 2: 身體檢查 (Max: 10 checklist + 5 global = 15, Weight: 15%)
-    physical: { p1: 0, p2: 0, p3: 0, p4: 0, p5: 0, global: 0, feedback: "" },
+    physical: { p1: 0, p2: 0, p3: 0, p4: 0, p5: 0, p6: 0, p7: 0, p8: 0, global: 0, feedback: "" },
     
     // Section 3: 初步臆斷 (Max: 5 checklist, Weight: 5%)
     diagnosis: { d1: 0, d2: 0, d3: 0, d4: 0, d5: 0, feedback: "" },
     
     // Section 4: 安排的檢查與判讀 (Max: 4 checklist + 8 global = 12, Weight: 10%)
-    investigations: { i1: 0, i2: 0, i3: 0, global: 0, feedback: "" },
+    investigations: { i1: 0, i2: 0, i3: 0, i4: 0, global: 0, feedback: "" },
     
     // Section 5: 鑑別診斷 (Max: 6 checklist + 4 global = 10, Weight: 10%)
     differential: { dd1: 0, dd2: 0, dd3: 0, dd4: 0, global: 0, feedback: "" },
     
     // Section 6: 治療處置 (Max: 12 checklist + 5 global = 17, Weight: 17%)
-    treatment: { tx1: 0, tx2: 0, tx3: 0, tx4: 0, tx5: 0, global: 0, feedback: "" },
+    treatment: { tx1: 0, tx2: 0, tx3: 0, tx4: 0, tx5: 0, tx6: 0, tx7: 0, global: 0, feedback: "" },
     
     // Section 7: 照會溝通 (Max: 8 checklist + 5 global = 13, Weight: 10%)
     consultation: { c1: 0, c2: 0, c3: 0, c4: 0, global: 0, feedback: "" },
@@ -70,6 +70,11 @@ export default function CandidateScorer({ onEvaluationSaved, selectedCandidateId
       setSelectedCandidate(selectedCandidateId);
     }
   }, [selectedCandidateId]);
+
+  // Reset activeTab if it is out of bounds for the selected case scenario
+  useEffect(() => {
+    setActiveTab(0);
+  }, [caseIdx]);
 
   // Load existing scorecard if saved in localStorage, else reset
   useEffect(() => {
@@ -104,50 +109,103 @@ export default function CandidateScorer({ onEvaluationSaved, selectedCandidateId
 
   // Live total & weighted score calculator
   const calculateScores = (card: ScoreCard) => {
-    // 1. History (Max raw: 2x7 + 1 + 7 = 22. Weight: 23%)
-    const rawH = card.history.s1 + card.history.s2 + card.history.s3 + card.history.s4 + card.history.s5 + card.history.s6 + card.history.s7 + card.history.s8;
-    const scoreH = ((rawH + card.history.global) / 22) * 23;
+    if (caseIdx === 1) {
+      // Case 2: Uterine Rupture
+      // 1. History (病史由11個項目組成, 總分21%)
+      // Checklist items: s1-11, max points sum = 16. Global rating: 0-5. Total history raw max = 16+5=21. Weight = 21%
+      const rawH = (card.history.s1 || 0) + (card.history.s2 || 0) + (card.history.s3 || 0) + (card.history.s4 || 0) + (card.history.s5 || 0) + (card.history.s6 || 0) + (card.history.s7 || 0) + (card.history.s8 || 0) + (card.history.s9 || 0) + (card.history.s10 || 0) + (card.history.s11 || 0);
+      const scoreH = ((rawH + (card.history.global || 0)) / 21) * 21;
 
-    // 2. Physical (Max raw: 2x5 + 5 = 15. Weight: 15%)
-    const rawPE = card.physical.p1 + card.physical.p2 + card.physical.p3 + card.physical.p4 + card.physical.p5;
-    const scorePE = ((rawPE + card.physical.global) / 15) * 15;
+      // 2. Physical (身體檢查, 總分16%)
+      // Checklist: p1-8, max points sum = 11. Global rating: 0-5. Total physical raw max = 11+5=16. Weight = 16%
+      const rawPE = (card.physical.p1 || 0) + (card.physical.p2 || 0) + (card.physical.p3 || 0) + (card.physical.p4 || 0) + (card.physical.p5 || 0) + (card.physical.p6 || 0) + (card.physical.p7 || 0) + (card.physical.p8 || 0);
+      const scorePE = ((rawPE + (card.physical.global || 0)) / 16) * 16;
 
-    // 3. Diagnosis (Max raw: 5. Weight: 5%)
-    const rawDx = card.diagnosis.d1 + card.diagnosis.d2 + card.diagnosis.d3 + card.diagnosis.d4 + card.diagnosis.d5;
-    const scoreDx = (rawDx / 5) * 5;
+      // 3. Diagnosis (初步臆斷, 總分11%)
+      // Checklist: d1(uterine rupture, 0-3), d2(severe infection/septic shock, 0-3), d3(abruptio placenta, 0-2), d4(HELLP, 0-2), d5(preeclampsia, 0-1)
+      // Sum = 11 points. No global score. Weight = 11%
+      const rawDx = (card.diagnosis.d1 || 0) + (card.diagnosis.d2 || 0) + (card.diagnosis.d3 || 0) + (card.diagnosis.d4 || 0) + (card.diagnosis.d5 || 0);
+      const scoreDx = (rawDx / 11) * 11;
 
-    // 4. Investigations (Max raw: 1 + 2 + 1 + 8 = 12. Weight: 10%)
-    const rawInv = card.investigations.i1 + card.investigations.i2 + card.investigations.i3;
-    const scoreInv = ((rawInv + card.investigations.global) / 12) * 10;
+      // 4. Investigations (安排的檢查及判讀, 總分19%)
+      // Checklist: i1-4, max points sum = 14. Global rating: 0-5. Total investigations raw max = 14+5=19. Weight = 19%
+      const rawInv = (card.investigations.i1 || 0) + (card.investigations.i2 || 0) + (card.investigations.i3 || 0) + (card.investigations.i4 || 0);
+      const scoreInv = ((rawInv + (card.investigations.global || 0)) / 19) * 19;
 
-    // 5. Differential (Max raw: 3 + 1 + 1 + 1 + 4 = 10. Weight: 10%)
-    const rawDD = card.differential.dd1 + card.differential.dd2 + card.differential.dd3 + card.differential.dd4;
-    const scoreDD = ((rawDD + card.differential.global) / 10) * 10;
+      // 5. Differential (鑑別診斷, 總分12%)
+      // Checklist: dd1(preliminary diagnostics, 0-2), dd2(explain uterine rupture, 0-6), dd3(differential septic/hypovolemic, 0-4)
+      // Sum = 12 points. No global score. Weight = 12%
+      const rawDD = (card.differential.dd1 || 0) + (card.differential.dd2 || 0) + (card.differential.dd3 || 0);
+      const scoreDD = (rawDD / 12) * 12;
 
-    // 6. Treatment (Max raw: 1 + 3 + 2 + 4 + 2 + 5 = 17. Weight: 17%)
-    const rawTx = card.treatment.tx1 + card.treatment.tx2 + card.treatment.tx3 + card.treatment.tx4 + card.treatment.tx5;
-    const scoreTx = ((rawTx + card.treatment.global) / 17) * 17;
+      // 6. Treatment (治療處置, 總分17%)
+      // Checklist: tx1-7, max points sum = 13. Global rating: 0-4. Total treatment raw max = 13+4=17. Weight = 17%
+      const rawTx = (card.treatment.tx1 || 0) + (card.treatment.tx2 || 0) + (card.treatment.tx3 || 0) + (card.treatment.tx4 || 0) + (card.treatment.tx5 || 0) + (card.treatment.tx6 || 0) + (card.treatment.tx7 || 0);
+      const scoreTx = ((rawTx + (card.treatment.global || 0)) / 17) * 17;
 
-    // 7. Consultation (Max raw: 1 + 1 + 1 + 5 + 5 = 13. Weight: 10%)
-    const rawC = card.consultation.c1 + card.consultation.c2 + card.consultation.c3 + card.consultation.c4;
-    const scoreC = ((rawC + card.consultation.global) / 13) * 10;
+      // 7. Counseling (諮商溝通, 總分4%)
+      // Checklist: None. Global rating: 0-4. Total counseling raw max = 4. Weight = 4%
+      const scoreCo = card.counseling.global || 0;
 
-    // 8. Counseling (Max raw: 5 + 5 = 10. Weight: 10%)
-    const rawCo = card.counseling.co1 + card.counseling.co2 + card.counseling.co3 + card.counseling.co4 + card.counseling.co5;
-    const scoreCo = ((rawCo + card.counseling.global) / 10) * 10;
+      const aggregate = scoreH + scorePE + scoreDx + scoreInv + scoreDD + scoreTx + scoreCo;
+      return {
+        historyPct: Math.round(scoreH * 10) / 10,
+        physicalPct: Math.round(scorePE * 10) / 10,
+        diagnosisPct: Math.round(scoreDx * 10) / 10,
+        investigationsPct: Math.round(scoreInv * 10) / 10,
+        differentialPct: Math.round(scoreDD * 10) / 10,
+        treatmentPct: Math.round(scoreTx * 10) / 10,
+        consultationPct: 0,
+        counselingPct: Math.round(scoreCo * 10) / 10,
+        grandTotal: Math.min(100, Math.round(aggregate * 10) / 10)
+      };
+    } else {
+      // Case 1: BRASH Syndrome (Default)
+      // 1. History (Max raw: 2x7 + 1 + 7 = 22. Weight: 23%)
+      const rawH = card.history.s1 + card.history.s2 + card.history.s3 + card.history.s4 + card.history.s5 + card.history.s6 + card.history.s7 + card.history.s8;
+      const scoreH = ((rawH + card.history.global) / 22) * 23;
 
-    const aggregate = scoreH + scorePE + scoreDx + scoreInv + scoreDD + scoreTx + scoreC + scoreCo;
-    return {
-      historyPct: Math.round(scoreH * 10) / 10,
-      physicalPct: Math.round(scorePE * 10) / 10,
-      diagnosisPct: Math.round(scoreDx * 10) / 10,
-      investigationsPct: Math.round(scoreInv * 10) / 10,
-      differentialPct: Math.round(scoreDD * 10) / 10,
-      treatmentPct: Math.round(scoreTx * 10) / 10,
-      consultationPct: Math.round(scoreC * 10) / 10,
-      counselingPct: Math.round(scoreCo * 10) / 10,
-      grandTotal: Math.min(100, Math.round(aggregate * 10) / 10)
-    };
+      // 2. Physical (Max raw: 2x5 + 5 = 15. Weight: 15%)
+      const rawPE = card.physical.p1 + card.physical.p2 + card.physical.p3 + card.physical.p4 + card.physical.p5;
+      const scorePE = ((rawPE + card.physical.global) / 15) * 15;
+
+      // 3. Diagnosis (Max raw: 5. Weight: 5%)
+      const rawDx = card.diagnosis.d1 + card.diagnosis.d2 + card.diagnosis.d3 + card.diagnosis.d4 + card.diagnosis.d5;
+      const scoreDx = (rawDx / 5) * 5;
+
+      // 4. Investigations (Max raw: 1 + 2 + 1 + 8 = 12. Weight: 10%)
+      const rawInv = card.investigations.i1 + card.investigations.i2 + card.investigations.i3;
+      const scoreInv = ((rawInv + card.investigations.global) / 12) * 10;
+
+      // 5. Differential (Max raw: 3 + 1 + 1 + 1 + 4 = 10. Weight: 10%)
+      const rawDD = card.differential.dd1 + card.differential.dd2 + card.differential.dd3 + card.differential.dd4;
+      const scoreDD = ((rawDD + card.differential.global) / 10) * 10;
+
+      // 6. Treatment (Max raw: 1 + 3 + 2 + 4 + 2 + 5 = 17. Weight: 17%)
+      const rawTx = card.treatment.tx1 + card.treatment.tx2 + card.treatment.tx3 + card.treatment.tx4 + card.treatment.tx5;
+      const scoreTx = ((rawTx + card.treatment.global) / 17) * 17;
+
+      // 7. Consultation (Max raw: 1 + 1 + 1 + 5 + 5 = 13. Weight: 10%)
+      const rawC = card.consultation.c1 + card.consultation.c2 + card.consultation.c3 + card.consultation.c4;
+      const scoreC = ((rawC + card.consultation.global) / 13) * 10;
+
+      // 8. Counseling (Max raw: 5 + 5 = 10. Weight: 10%)
+      const rawCo = card.counseling.co1 + card.counseling.co2 + card.counseling.co3 + card.counseling.co4 + card.counseling.co5;
+      const scoreCo = ((rawCo + card.counseling.global) / 10) * 10;
+
+      const aggregate = scoreH + scorePE + scoreDx + scoreInv + scoreDD + scoreTx + scoreC + scoreCo;
+      return {
+        historyPct: Math.round(scoreH * 10) / 10,
+        physicalPct: Math.round(scorePE * 10) / 10,
+        diagnosisPct: Math.round(scoreDx * 10) / 10,
+        investigationsPct: Math.round(scoreInv * 10) / 10,
+        differentialPct: Math.round(scoreDD * 10) / 10,
+        treatmentPct: Math.round(scoreTx * 10) / 10,
+        consultationPct: Math.round(scoreC * 10) / 10,
+        counselingPct: Math.round(scoreCo * 10) / 10,
+        grandTotal: Math.min(100, Math.round(aggregate * 10) / 10)
+      };
+    }
   };
 
   const scoreMetrics = calculateScores(scoreCard);
@@ -277,7 +335,15 @@ export default function CandidateScorer({ onEvaluationSaved, selectedCandidateId
   };
 
   // Section details
-  const SECTIONS = [
+  const SECTIONS = caseIdx === 1 ? [
+    { title: "一、病史詢問 (History)", key: "history", weight: "21%" },
+    { title: "二、身體檢查 (P.E.)", key: "physical", weight: "16%" },
+    { title: "三、初步臆斷 (Impression)", key: "diagnosis", weight: "11%" },
+    { title: "四、安排檢查與判讀 (Labs)", key: "investigations", weight: "19%" },
+    { title: "五、鑑別診斷 (D.D.)", key: "differential", weight: "12%" },
+    { title: "六、治療處置 (Management)", key: "treatment", weight: "17%" },
+    { title: "七、諮商溝通 (Counseling)", key: "counseling", weight: "4%" },
+  ] : [
     { title: "一、病史詢問 (History)", key: "history", weight: "23%" },
     { title: "二、身體檢查 (P.E.)", key: "physical", weight: "15%" },
     { title: "三、初步臆斷 (Impression)", key: "diagnosis", weight: "5%" },
@@ -345,43 +411,78 @@ export default function CandidateScorer({ onEvaluationSaved, selectedCandidateId
             <span className="text-lg font-medium text-slate-500">%</span>
           </span>
           <p className="text-[10px] text-slate-400 mt-1 max-w-[150px] mx-auto font-sans leading-relaxed">
-            由 8 個面試核心面向依 PDF 權重計算法得出
+            由 {caseIdx === 1 ? 7 : 8} 個面試核心面向依 PDF 權重計算法得出
           </p>
 
           {/* Quick individual section scores list */}
           <div className="mt-4 pt-4 border-t border-slate-800 text-left space-y-1.5 text-[10px] font-sans">
-            <div className="flex justify-between text-slate-350">
-              <span className="font-semibold text-slate-200">病史詢問 {SECTIONS[0].weight}</span>
-              <span className="font-mono text-teal-400">{scoreMetrics.historyPct}% / 23%</span>
-            </div>
-            <div className="flex justify-between text-slate-350">
-              <span className="font-semibold text-slate-200">身體檢查 {SECTIONS[1].weight}</span>
-              <span className="font-mono text-teal-400">{scoreMetrics.physicalPct}% / 15%</span>
-            </div>
-            <div className="flex justify-between text-slate-350">
-              <span className="font-semibold text-slate-200">初步臆斷 {SECTIONS[2].weight}</span>
-              <span className="font-mono text-teal-400">{scoreMetrics.diagnosisPct}% / 5%</span>
-            </div>
-            <div className="flex justify-between text-slate-350">
-              <span className="font-semibold text-slate-200">檢查判讀 {SECTIONS[3].weight}</span>
-              <span className="font-mono text-teal-400">{scoreMetrics.investigationsPct}% / 10%</span>
-            </div>
-            <div className="flex justify-between text-slate-350">
-              <span className="font-semibold text-slate-200">鑑別診斷 {SECTIONS[4].weight}</span>
-              <span className="font-mono text-teal-400">{scoreMetrics.differentialPct}% / 10%</span>
-            </div>
-            <div className="flex justify-between text-slate-350">
-              <span className="font-semibold text-slate-200">治療處置 {SECTIONS[5].weight}</span>
-              <span className="font-mono text-teal-400">{scoreMetrics.treatmentPct}% / 17%</span>
-            </div>
-            <div className="flex justify-between text-slate-350">
-              <span className="font-semibold text-slate-200">照會溝通 {SECTIONS[6].weight}</span>
-              <span className="font-mono text-teal-400">{scoreMetrics.consultationPct}% / 10%</span>
-            </div>
-            <div className="flex justify-between text-slate-350">
-              <span className="font-semibold text-slate-200">諮商溝通 {SECTIONS[7].weight}</span>
-              <span className="font-mono text-teal-400">{scoreMetrics.counselingPct}% / 10%</span>
-            </div>
+            {caseIdx === 1 ? (
+              <>
+                <div className="flex justify-between text-slate-350">
+                  <span className="font-semibold text-slate-200">病史詢問 {SECTIONS[0].weight}</span>
+                  <span className="font-mono text-teal-400">{scoreMetrics.historyPct}% / 21%</span>
+                </div>
+                <div className="flex justify-between text-slate-350">
+                  <span className="font-semibold text-slate-200">身體檢查 {SECTIONS[1].weight}</span>
+                  <span className="font-mono text-teal-400">{scoreMetrics.physicalPct}% / 16%</span>
+                </div>
+                <div className="flex justify-between text-slate-350">
+                  <span className="font-semibold text-slate-200">初步臆斷 {SECTIONS[2].weight}</span>
+                  <span className="font-mono text-teal-400">{scoreMetrics.diagnosisPct}% / 11%</span>
+                </div>
+                <div className="flex justify-between text-slate-350">
+                  <span className="font-semibold text-slate-200">檢查判讀 {SECTIONS[3].weight}</span>
+                  <span className="font-mono text-teal-400">{scoreMetrics.investigationsPct}% / 19%</span>
+                </div>
+                <div className="flex justify-between text-slate-350">
+                  <span className="font-semibold text-slate-200">鑑別診斷 {SECTIONS[4].weight}</span>
+                  <span className="font-mono text-teal-400">{scoreMetrics.differentialPct}% / 12%</span>
+                </div>
+                <div className="flex justify-between text-slate-350">
+                  <span className="font-semibold text-slate-200">治療處置 {SECTIONS[5].weight}</span>
+                  <span className="font-mono text-teal-400">{scoreMetrics.treatmentPct}% / 17%</span>
+                </div>
+                <div className="flex justify-between text-slate-350">
+                  <span className="font-semibold text-slate-200">諮商溝通 {SECTIONS[6].weight}</span>
+                  <span className="font-mono text-teal-400">{scoreMetrics.counselingPct}% / 4%</span>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="flex justify-between text-slate-350">
+                  <span className="font-semibold text-slate-200">病史詢問 {SECTIONS[0].weight}</span>
+                  <span className="font-mono text-teal-400">{scoreMetrics.historyPct}% / 23%</span>
+                </div>
+                <div className="flex justify-between text-slate-350">
+                  <span className="font-semibold text-slate-200">身體檢查 {SECTIONS[1].weight}</span>
+                  <span className="font-mono text-teal-400">{scoreMetrics.physicalPct}% / 15%</span>
+                </div>
+                <div className="flex justify-between text-slate-350">
+                  <span className="font-semibold text-slate-200">初步臆斷 {SECTIONS[2].weight}</span>
+                  <span className="font-mono text-teal-400">{scoreMetrics.diagnosisPct}% / 5%</span>
+                </div>
+                <div className="flex justify-between text-slate-350">
+                  <span className="font-semibold text-slate-200">檢查判讀 {SECTIONS[3].weight}</span>
+                  <span className="font-mono text-teal-400">{scoreMetrics.investigationsPct}% / 10%</span>
+                </div>
+                <div className="flex justify-between text-slate-350">
+                  <span className="font-semibold text-slate-200">鑑別診斷 {SECTIONS[4].weight}</span>
+                  <span className="font-mono text-teal-400">{scoreMetrics.differentialPct}% / 10%</span>
+                </div>
+                <div className="flex justify-between text-slate-350">
+                  <span className="font-semibold text-slate-200">治療處置 {SECTIONS[5].weight}</span>
+                  <span className="font-mono text-teal-400">{scoreMetrics.treatmentPct}% / 17%</span>
+                </div>
+                <div className="flex justify-between text-slate-350">
+                  <span className="font-semibold text-slate-200">照會溝通 {SECTIONS[6].weight}</span>
+                  <span className="font-mono text-teal-400">{scoreMetrics.consultationPct}% / 10%</span>
+                </div>
+                <div className="flex justify-between text-slate-350">
+                  <span className="font-semibold text-slate-200">諮商溝通 {SECTIONS[7].weight}</span>
+                  <span className="font-mono text-teal-400">{scoreMetrics.counselingPct}% / 10%</span>
+                </div>
+              </>
+            )}
           </div>
         </div>
 
@@ -498,194 +599,237 @@ export default function CandidateScorer({ onEvaluationSaved, selectedCandidateId
             {/* SECTION 1: 病史詢問 */}
             {activeTab === 0 && (
               <div className="space-y-4 animate-fade-in" id="scorer-section-history">
-                <div className="space-y-3">
-                  <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest font-sans">
-                    細項行為指標評核清單
-                  </h4>
-                  
-                  {/* Checklist item 1 */}
-                  <div className="p-3 bg-slate-50 border border-slate-150 rounded-xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-                    <div className="space-y-1">
-                      <span className="text-[11px] text-slate-900 font-semibold block">1. 症狀發生時間與進展 (Symptom progression)</span>
-                      <p className="text-[10px] text-slate-400 font-sans leading-tight">評語：確實問著「昨天早上開始，今日逐漸加強」</p>
-                    </div>
-                    <div className="flex gap-1 shrink-0">
-                      {[0, 1, 2].map(wt => (
-                        <button
-                          key={wt}
-                          onClick={() => updateScoreItem("history", "s1", wt)}
-                          className={`w-9 py-1 px-2 rounded-lg text-xs font-mono font-bold border transition-all ${
-                            scoreCard.history.s1 === wt 
-                              ? "bg-teal-600 border-teal-600 text-white shadow-xs" 
-                              : "bg-white border-slate-350 text-slate-600 hover:bg-slate-50"
-                          }`}
-                        >
-                          {wt}分
-                        </button>
-                      ))}
-                    </div>
+                {caseIdx === 1 ? (
+                  <div className="space-y-3">
+                    <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest font-sans">
+                      細項行為指標評核清單 (Case 2: 子宮破裂)
+                    </h4>
+                    {[
+                      { key: "s1", label: "1. 症狀發生的時間：今天清晨", sub: "主動詢問腹痛或發燒起點「今天清晨」得 1 分", max: 1 },
+                      { key: "s2", label: "2. 症狀特徵：下腹劇烈疼痛(1)，接著畏寒發燒(1)", sub: "詢問出「下腹劇烈疼痛」得 1 分；主動問出「接著畏寒發燒」得 1 分，共 2 分", max: 2 },
+                      { key: "s3", label: "3. 合併的症狀：無陰道出血", sub: "主動詢問是否合併有陰道出血(點狀出血/分泌物)得 1 分", max: 1 },
+                      { key: "s4", label: "4. 過去病史：貧血", sub: "詢問平時是否患有貧血、關鍵孕期疾病或血紅素狀態得 1 分", max: 1 },
+                      { key: "s5", label: "5. 過去手術史：曾接受兩次子宮肌瘤切除手術", sub: "主動細緻詢問過去手術史，並指出曾接受子宮開刀/子宮肌瘤切除史得 1 分", max: 1 },
+                      { key: "s6", label: "6. 產婦相關病史：懷孕週數(1)、產檢狀況(1)、G(1)、P(1)、A(1)", sub: "明確問出懷孕週數(1)、產檢良好(1)與孕產次 G2P1A0 (G-1, P-1, A-1)，至多 5 分", max: 5 },
+                      { key: "s7", label: "7. 用藥史：無", sub: "主動詢問是否有其他孕期用藥、常規口服藥或補品得 1 分", max: 1 },
+                      { key: "s8", label: "8. 個人病史：無", sub: "確認無其他重大系統性疾病或藥物過敏史得 1 分", max: 1 },
+                      { key: "s9", label: "9. 家族史：無", sub: "詢問家族內是否有相關重大遺傳疾病得 1 分", max: 1 },
+                      { key: "s10", label: "10. 旅遊史：近一年無出國紀錄", sub: "主動詢問近期旅遊史(近一週至近一年無出國紀錄)得 1 分", max: 1 },
+                      { key: "s11", label: "11. 接觸史：無", sub: "確認無特殊群聚史、特殊非尋常接觸史得 1 分", max: 1 }
+                    ].map((item) => (
+                      <div key={item.key} className="p-3 bg-slate-50 border border-slate-150 rounded-xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                        <div className="space-y-1">
+                          <span className="text-[11px] text-slate-900 font-semibold block">{item.label}</span>
+                          <p className="text-[10px] text-slate-400 font-sans leading-tight">{item.sub}</p>
+                        </div>
+                        <div className="flex gap-1 shrink-0">
+                          {Array.from({ length: item.max + 1 }).map((_, wt) => (
+                            <button
+                              key={wt}
+                              onClick={() => updateScoreItem("history", item.key, wt)}
+                              className={`w-9 py-1 px-2 rounded-lg text-xs font-mono font-bold border transition-all ${
+                                (scoreCard.history as any)[item.key] === wt
+                                  ? "bg-teal-600 border-teal-600 text-white shadow-xs" 
+                                  : "bg-white border-slate-350 text-slate-600 hover:bg-slate-50"
+                              }`}
+                            >
+                              {wt}分
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
                   </div>
+                ) : (
+                  <div className="space-y-3">
+                    <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest font-sans">
+                      細項行為指標評核清單
+                    </h4>
+                    
+                    {/* Checklist item 1 */}
+                    <div className="p-3 bg-slate-50 border border-slate-150 rounded-xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                      <div className="space-y-1">
+                        <span className="text-[11px] text-slate-900 font-semibold block">1. 症狀發生時間與進展 (Symptom progression)</span>
+                        <p className="text-[10px] text-slate-400 font-sans leading-tight">評語：確實問著「昨天早上開始，今日逐漸加強」</p>
+                      </div>
+                      <div className="flex gap-1 shrink-0">
+                        {[0, 1, 2].map(wt => (
+                          <button
+                            key={wt}
+                            onClick={() => updateScoreItem("history", "s1", wt)}
+                            className={`w-9 py-1 px-2 rounded-lg text-xs font-mono font-bold border transition-all ${
+                              scoreCard.history.s1 === wt 
+                                ? "bg-teal-600 border-teal-600 text-white shadow-xs" 
+                                : "bg-white border-slate-350 text-slate-600 hover:bg-slate-50"
+                            }`}
+                          >
+                            {wt}分
+                          </button>
+                        ))}
+                      </div>
+                    </div>
 
-                  {/* Checklist item 2 */}
-                  <div className="p-3 bg-slate-50 border border-slate-150 rounded-xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-                    <div className="space-y-1">
-                      <span className="text-[11px] text-slate-900 font-semibold block">2. 胸痛特徵 (Chest pain charactieristics)</span>
-                      <p className="text-[10px] text-slate-400 font-sans leading-tight">問出「胸痛為悶痛、無明顯放射至背部、無典型冷汗」：達3項給2分，1-2項給1分</p>
+                    {/* Checklist item 2 */}
+                    <div className="p-3 bg-slate-50 border border-slate-150 rounded-xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                      <div className="space-y-1">
+                        <span className="text-[11px] text-slate-900 font-semibold block">2. 胸痛特徵 (Chest pain charactieristics)</span>
+                        <p className="text-[10px] text-slate-400 font-sans leading-tight">問出「胸痛為悶痛、無明顯放射至背部、無典型冷汗」：達3項給2分，1-2項給1分</p>
+                      </div>
+                      <div className="flex gap-1 shrink-0">
+                        {[0, 1, 2].map(wt => (
+                          <button
+                            key={wt}
+                            onClick={() => updateScoreItem("history", "s2", wt)}
+                            className={`w-9 py-1 px-2 rounded-lg text-xs font-mono font-bold border transition-all ${
+                              scoreCard.history.s2 === wt 
+                                ? "bg-teal-600 border-teal-600 text-white shadow-xs" 
+                                : "bg-white border-slate-350 text-slate-600 hover:bg-slate-50"
+                            }`}
+                          >
+                            {wt}分
+                          </button>
+                        ))}
+                      </div>
                     </div>
-                    <div className="flex gap-1 shrink-0">
-                      {[0, 1, 2].map(wt => (
-                        <button
-                          key={wt}
-                          onClick={() => updateScoreItem("history", "s2", wt)}
-                          className={`w-9 py-1 px-2 rounded-lg text-xs font-mono font-bold border transition-all ${
-                            scoreCard.history.s2 === wt 
-                              ? "bg-teal-600 border-teal-600 text-white shadow-xs" 
-                              : "bg-white border-slate-350 text-slate-600 hover:bg-slate-50"
-                          }`}
-                        >
-                          {wt}分
-                        </button>
-                      ))}
-                    </div>
-                  </div>
 
-                  {/* Checklist item 3 */}
-                  <div className="p-3 bg-slate-50 border border-slate-150 rounded-xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-                    <div className="space-y-1">
-                      <span className="text-[11px] text-slate-900 font-semibold block">3. 低灌流症狀 (Hypoperfusion symptoms)</span>
-                      <p className="text-[10px] text-slate-400 font-sans leading-tight">問出「頭暈、快昏倒、全身無力、胸痛」：3項以上給2分，1-2項1分</p>
+                    {/* Checklist item 3 */}
+                    <div className="p-3 bg-slate-50 border border-slate-150 rounded-xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                      <div className="space-y-1">
+                        <span className="text-[11px] text-slate-900 font-semibold block">3. 低灌流症狀 (Hypoperfusion symptoms)</span>
+                        <p className="text-[10px] text-slate-400 font-sans leading-tight">問出「頭暈、快昏倒、全身無力、胸痛」：3項以上給2分，1-2項1分</p>
+                      </div>
+                      <div className="flex gap-1 shrink-0">
+                        {[0, 1, 2].map(wt => (
+                          <button
+                            key={wt}
+                            onClick={() => updateScoreItem("history", "s3", wt)}
+                            className={`w-9 py-1 px-2 rounded-lg text-xs font-mono font-bold border transition-all ${
+                              scoreCard.history.s3 === wt 
+                                ? "bg-teal-600 border-teal-600 text-white shadow-xs" 
+                                : "bg-white border-slate-350 text-slate-600 hover:bg-slate-50"
+                            }`}
+                          >
+                            {wt}分
+                          </button>
+                        ))}
+                      </div>
                     </div>
-                    <div className="flex gap-1 shrink-0">
-                      {[0, 1, 2].map(wt => (
-                        <button
-                          key={wt}
-                          onClick={() => updateScoreItem("history", "s3", wt)}
-                          className={`w-9 py-1 px-2 rounded-lg text-xs font-mono font-bold border transition-all ${
-                            scoreCard.history.s3 === wt 
-                              ? "bg-teal-600 border-teal-600 text-white shadow-xs" 
-                              : "bg-white border-slate-350 text-slate-600 hover:bg-slate-50"
-                          }`}
-                        >
-                          {wt}分
-                        </button>
-                      ))}
-                    </div>
-                  </div>
 
-                  {/* Checklist item 4 */}
-                  <div className="p-3 bg-slate-50 border border-slate-150 rounded-xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-                    <div className="space-y-1">
-                      <span className="text-[11px] text-slate-900 font-semibold block">4. 感染或脫水誘因 (Precipitants)</span>
-                      <p className="text-[10px] text-slate-400 font-sans leading-tight">問出「食慾差、尿量少、無生病、無發燒腹瀉」：4項以上給2分，1-3項1分</p>
+                    {/* Checklist item 4 */}
+                    <div className="p-3 bg-slate-50 border border-slate-150 rounded-xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                      <div className="space-y-1">
+                        <span className="text-[11px] text-slate-900 font-semibold block">4. 感染或脫水誘因 (Precipitants)</span>
+                        <p className="text-[10px] text-slate-400 font-sans leading-tight">問出「食慾差、尿量少、無生病、無發燒腹瀉」：4項以上給2分，1-3項1分</p>
+                      </div>
+                      <div className="flex gap-1 shrink-0">
+                        {[0, 1, 2].map(wt => (
+                          <button
+                            key={wt}
+                            onClick={() => updateScoreItem("history", "s4", wt)}
+                            className={`w-9 py-1 px-2 rounded-lg text-xs font-mono font-bold border transition-all ${
+                              scoreCard.history.s4 === wt 
+                                ? "bg-teal-600 border-teal-600 text-white shadow-xs" 
+                                : "bg-white border-slate-350 text-slate-600 hover:bg-slate-50"
+                            }`}
+                          >
+                            {wt}分
+                          </button>
+                        ))}
+                      </div>
                     </div>
-                    <div className="flex gap-1 shrink-0">
-                      {[0, 1, 2].map(wt => (
-                        <button
-                          key={wt}
-                          onClick={() => updateScoreItem("history", "s4", wt)}
-                          className={`w-9 py-1 px-2 rounded-lg text-xs font-mono font-bold border transition-all ${
-                            scoreCard.history.s4 === wt 
-                              ? "bg-teal-600 border-teal-600 text-white shadow-xs" 
-                              : "bg-white border-slate-350 text-slate-600 hover:bg-slate-50"
-                          }`}
-                        >
-                          {wt}分
-                        </button>
-                      ))}
-                    </div>
-                  </div>
 
-                  {/* Checklist item 5 */}
-                  <div className="p-3 bg-slate-50 border border-slate-150 rounded-xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-                    <div className="space-y-1">
-                      <span className="text-[11px] text-slate-900 font-semibold block">5. 過去病史 (Past Medical History)</span>
-                      <p className="text-[10px] text-slate-400 font-sans leading-tight">問出 CHF / DM / HTN / Af / UTI 任一病史，達標給 1 分</p>
+                    {/* Checklist item 5 */}
+                    <div className="p-3 bg-slate-50 border border-slate-150 rounded-xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                      <div className="space-y-1">
+                        <span className="text-[11px] text-slate-900 font-semibold block">5. 過去病史 (Past Medical History)</span>
+                        <p className="text-[10px] text-slate-400 font-sans leading-tight">問出 CHF / DM / HTN / Af / UTI 任一病史，達標給 1 分</p>
+                      </div>
+                      <div className="flex gap-1 shrink-0">
+                        {[0, 1].map(wt => (
+                          <button
+                            key={wt}
+                            onClick={() => updateScoreItem("history", "s5", wt)}
+                            className={`w-9 py-1 px-2 rounded-lg text-xs font-mono font-bold border transition-all ${
+                              scoreCard.history.s5 === wt 
+                                ? "bg-indigo-600 border-indigo-600 text-white shadow-xs" 
+                                : "bg-white border-slate-350 text-slate-600 hover:bg-slate-50"
+                            }`}
+                          >
+                            {wt}分
+                          </button>
+                        ))}
+                      </div>
                     </div>
-                    <div className="flex gap-1 shrink-0">
-                      {[0, 1].map(wt => (
-                        <button
-                          key={wt}
-                          onClick={() => updateScoreItem("history", "s5", wt)}
-                          className={`w-9 py-1 px-2 rounded-lg text-xs font-mono font-bold border transition-all ${
-                            scoreCard.history.s5 === wt 
-                              ? "bg-indigo-600 border-indigo-600 text-white shadow-xs" 
-                              : "bg-white border-slate-350 text-slate-600 hover:bg-slate-50"
-                          }`}
-                        >
-                          {wt}分
-                        </button>
-                      ))}
-                    </div>
-                  </div>
 
-                  {/* Checklist item 6 */}
-                  <div className="p-3 bg-slate-50 border border-slate-150 rounded-xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-                    <div className="space-y-1">
-                      <span className="text-[11px] text-slate-900 font-semibold block">6. 用藥史詢問 (Medications)</span>
-                      <p className="text-[10px] text-slate-400 font-sans leading-tight">問及 beta-blocker/CCB/digoxin/ACEi 等：有問給1分，能特別指出房室結阻滯劑或影響腎/鉀之藥物給2分</p>
+                    {/* Checklist item 6 */}
+                    <div className="p-3 bg-slate-50 border border-slate-150 rounded-xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                      <div className="space-y-1">
+                        <span className="text-[11px] text-slate-900 font-semibold block">6. 用藥史詢問 (Medications)</span>
+                        <p className="text-[10px] text-slate-400 font-sans leading-tight">問及 beta-blocker/CCB/digoxin/ACEi 等：有問給1分，能特別指出房室結阻滯劑或影響腎/鉀之藥物給2分</p>
+                      </div>
+                      <div className="flex gap-1 shrink-0">
+                        {[0, 1, 2].map(wt => (
+                          <button
+                            key={wt}
+                            onClick={() => updateScoreItem("history", "s6", wt)}
+                            className={`w-9 py-1 px-2 rounded-lg text-xs font-mono font-bold border transition-all ${
+                              scoreCard.history.s6 === wt 
+                                ? "bg-teal-600 border-teal-600 text-white shadow-xs" 
+                                : "bg-white border-slate-350 text-slate-600 hover:bg-slate-50"
+                            }`}
+                          >
+                            {wt}分
+                          </button>
+                        ))}
+                      </div>
                     </div>
-                    <div className="flex gap-1 shrink-0">
-                      {[0, 1, 2].map(wt => (
-                        <button
-                          key={wt}
-                          onClick={() => updateScoreItem("history", "s6", wt)}
-                          className={`w-9 py-1 px-2 rounded-lg text-xs font-mono font-bold border transition-all ${
-                            scoreCard.history.s6 === wt 
-                              ? "bg-teal-600 border-teal-600 text-white shadow-xs" 
-                              : "bg-white border-slate-350 text-slate-600 hover:bg-slate-50"
-                          }`}
-                        >
-                          {wt}分
-                        </button>
-                      ))}
-                    </div>
-                  </div>
 
-                  {/* Checklist item 7 & 8 */}
-                  <div className="p-3 bg-slate-50 border border-slate-150 rounded-xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-                    <div className="space-y-1">
-                      <span className="text-[11px] text-slate-900 font-semibold block">7. 藥物過量或重複服藥</span>
-                      <p className="text-[10px] text-slate-400 font-sans leading-tight">釐清病患是否有自行大量多吃本位藥物（得2分）</p>
+                    {/* Checklist item 7 & 8 */}
+                    <div className="p-3 bg-slate-50 border border-slate-150 rounded-xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                      <div className="space-y-1">
+                        <span className="text-[11px] text-slate-900 font-semibold block">7. 藥物過量或重複服藥</span>
+                        <p className="text-[10px] text-slate-400 font-sans leading-tight">釐清病患是否有自行大量多吃本位藥物（得2分）</p>
+                      </div>
+                      <div className="flex gap-1 shrink-0">
+                        {[0, 1, 2].map(wt => (
+                          <button
+                            key={wt}
+                            onClick={() => updateScoreItem("history", "s7", wt)}
+                            className={`w-9 py-1 px-2 rounded-lg text-xs font-mono font-bold border transition-all ${
+                              scoreCard.history.s7 === wt 
+                                ? "bg-teal-600 border-teal-600 text-white shadow-xs" 
+                                : "bg-white border-slate-350 text-slate-600 hover:bg-slate-50"
+                            }`}
+                          >
+                            {wt}分
+                          </button>
+                        ))}
+                      </div>
                     </div>
-                    <div className="flex gap-1 shrink-0">
-                      {[0, 1, 2].map(wt => (
-                        <button
-                          key={wt}
-                          onClick={() => updateScoreItem("history", "s7", wt)}
-                          className={`w-9 py-1 px-2 rounded-lg text-xs font-mono font-bold border transition-all ${
-                            scoreCard.history.s7 === wt 
-                              ? "bg-teal-600 border-teal-600 text-white shadow-xs" 
-                              : "bg-white border-slate-350 text-slate-600 hover:bg-slate-50"
-                          }`}
-                        >
-                          {wt}分
-                        </button>
-                      ))}
-                    </div>
-                  </div>
 
-                  <div className="p-3 bg-slate-50 border border-slate-150 rounded-xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-                    <div className="space-y-1">
-                      <span className="text-[11px] text-slate-900 font-semibold block">8. 個人及家庭支持狀況</span>
-                      <p className="text-[10px] text-slate-400 font-sans leading-tight">問及與家人同住（1分）或平時生活功能（1分）</p>
-                    </div>
-                    <div className="flex gap-1 shrink-0">
-                      {[0, 1, 2].map(wt => (
-                        <button
-                          key={wt}
-                          onClick={() => updateScoreItem("history", "s8", wt)}
-                          className={`w-9 py-1 px-2 rounded-lg text-xs font-mono font-bold border transition-all ${
-                            scoreCard.history.s8 === wt 
-                              ? "bg-teal-600 border-teal-600 text-white shadow-xs" 
-                              : "bg-white border-slate-350 text-slate-600 hover:bg-slate-50"
-                          }`}
-                        >
-                          {wt}分
-                        </button>
-                      ))}
+                    <div className="p-3 bg-slate-50 border border-slate-150 rounded-xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                      <div className="space-y-1">
+                        <span className="text-[11px] text-slate-900 font-semibold block">8. 個人及家庭支持狀況</span>
+                        <p className="text-[10px] text-slate-400 font-sans leading-tight">問及與家人同住（1分）或平時生活功能（1分）</p>
+                      </div>
+                      <div className="flex gap-1 shrink-0">
+                        {[0, 1, 2].map(wt => (
+                          <button
+                            key={wt}
+                            onClick={() => updateScoreItem("history", "s8", wt)}
+                            className={`w-9 py-1 px-2 rounded-lg text-xs font-mono font-bold border transition-all ${
+                              scoreCard.history.s8 === wt 
+                                ? "bg-teal-600 border-teal-600 text-white shadow-xs" 
+                                : "bg-white border-slate-350 text-slate-600 hover:bg-slate-50"
+                            }`}
+                          >
+                            {wt}分
+                          </button>
+                        ))}
+                      </div>
                     </div>
                   </div>
-                </div>
+                )}
 
                 {/* Global Rating Part H */}
                 <div className="mt-6 p-4 border border-indigo-150 bg-indigo-50/40 rounded-2xl space-y-3">
@@ -694,10 +838,14 @@ export default function CandidateScorer({ onEvaluationSaved, selectedCandidateId
                     <h5 className="font-sans font-bold text-slate-800 text-sm">病史詢問整體評分 (Global History Rating)</h5>
                   </div>
                   <p className="text-[11px] text-slate-500 leading-tight">
-                    請對考生的病史統整流暢度作一級化總結。L1:無法取得 (0-1分 | L2:僅部分 (2-3分) | L3:大部達成 (4-5分) | L4:在危急急診情境優先獲取休克/慢心跳/多重用藥與腎功病史 (6-7分)
+                    {caseIdx === 1 ? (
+                      "請對考生的病史詢問作整體統整及溝通流暢度評估。 L1 (0-1分):無法獲得可靠病史 | L2 (2分):僅部分病史 | L3 (3分):大部分達成 | L4 (4-5分):系統性、精準迅速獲取所有關鍵病史。"
+                    ) : (
+                      "請對考生的病史統整流暢度作一級化總結。L1:無法取得 (0-1分 | L2:僅部分 (2-3分) | L3:大部達成 (4-5分) | L4:在危急急診情境優先獲取休克/慢心跳/多重用藥與腎功病史 (6-7分)"
+                    )}
                   </p>
                   <div className="flex flex-wrap gap-1.5 pt-2">
-                    {[0, 1, 2, 3, 4, 5, 6, 7].map(gWt => (
+                    {(caseIdx === 1 ? [0, 1, 2, 3, 4, 5] : [0, 1, 2, 3, 4, 5, 6, 7]).map(gWt => (
                       <button
                         key={gWt}
                         type="button"
@@ -708,7 +856,7 @@ export default function CandidateScorer({ onEvaluationSaved, selectedCandidateId
                             : "bg-white border-slate-300 text-slate-600 hover:bg-slate-50"
                         }`}
                       >
-                        {gWt} 分評評
+                        {gWt} 分評定
                       </button>
                     ))}
                   </div>
@@ -719,122 +867,162 @@ export default function CandidateScorer({ onEvaluationSaved, selectedCandidateId
             {/* SECTION 2: 身體檢查 (P.E.) */}
             {activeTab === 1 && (
               <div className="space-y-4 animate-fade-in" id="scorer-section-physical">
-                <div className="space-y-3">
-                  <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest font-sans">
-                    身體診察行為評核清單
-                  </h4>
+                {caseIdx === 1 ? (
+                  <div className="space-y-3">
+                    <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest font-sans">
+                      身體診察行為評核清單 (Case 2: 子宮破裂)
+                    </h4>
+                    {[
+                      { key: "p1", label: "1. 生命徵象與一般外觀評估：體溫不高、心搏過速、呼吸急促、不穩定生命徵象", sub: "主動逐項確認體溫(1)、心跳HR(1)、呼吸RR(1)，判讀整體生命徵象不穩定(1)，至多 4 分", max: 4 },
+                      { key: "p2", label: "2. 腹部與骨盆腔檢查：子宮切口處/下腹壓痛、腹膜刺激徵候、陰道出血評估", sub: "點出下腹劇烈壓痛(1)、腹膜刺激徵候與肌緊張狀態(1)、主動檢查陰道有無出血(1)，至多 3 分", max: 3 },
+                      { key: "p3", label: "3. 胸部聽診：呼吸音與心音檢查", sub: "聽診並確認雙側呼吸音對稱、心音快而無雜音得 1 分", max: 1 },
+                      { key: "p4", label: "4. 水分、循環、微血管充盈(CRT)狀態評估", sub: "評估休克指標：末梢微血管充盈時間(CRT)或脈搏強度得 1 分", max: 1 },
+                      { key: "p5", label: "5. 意識狀態評估 (GCS/AVPU)", sub: "主動評估病患意識狀態，點出雖能對答但顯室內倦怠/煩躁得 1 分", max: 1 },
+                      { key: "p6", label: "6. 皮膚狀態：膚色蒼白、濕冷、出冷汗評估", sub: "檢查皮膚膚色(蒼白1分)與濕冷/出汗程度得 1 分", max: 1 },
+                      { key: "p7", label: "7. 泌尿/骨盆系統：導尿管置入與尿量/血尿狀態評估", sub: "確認置入導尿管(1)或評估導尿管是否有血尿及偏低尿量表現得 1 分", max: 1 },
+                      { key: "p8", label: "8. 系統性與其他部位評估", sub: "確認無四肢水腫、無明顯其他器官系統特徵得 1 分", max: 1 }
+                    ].map((item) => (
+                      <div key={item.key} className="p-3 bg-slate-50 border border-slate-150 rounded-xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                        <div className="space-y-1">
+                          <span className="text-[11px] text-slate-900 font-semibold block">{item.label}</span>
+                          <p className="text-[10px] text-slate-400 font-sans leading-tight">{item.sub}</p>
+                        </div>
+                        <div className="flex gap-1 shrink-0">
+                          {Array.from({ length: item.max + 1 }).map((_, wt) => (
+                            <button
+                              key={wt}
+                              onClick={() => updateScoreItem("physical", item.key, wt)}
+                              className={`w-9 py-1 px-2 rounded-lg text-xs font-mono font-bold border transition-all ${
+                                (scoreCard.physical as any)[item.key] === wt
+                                  ? "bg-teal-600 border-teal-600 text-white shadow-xs" 
+                                  : "bg-white border-slate-350 text-slate-600 hover:bg-slate-50"
+                              }`}
+                            >
+                              {wt}分
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest font-sans">
+                      身體診察行為評核清單
+                    </h4>
 
-                  {/* p1 to p5 */}
-                  <div className="p-3 bg-slate-50 border border-slate-150 rounded-xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-                    <div className="space-y-1">
-                      <span className="text-[11px] text-slate-900 font-semibold block">1. 胸部肺音聽診 (Lung sound)</span>
-                      <p className="text-[10px] text-slate-400 font-sans leading-tight">評估 crackles, 呼吸窘迫或肺水腫表現，胸壁壓痛等排除ACS主訴（2分）</p>
+                    {/* p1 to p5 */}
+                    <div className="p-3 bg-slate-50 border border-slate-150 rounded-xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                      <div className="space-y-1">
+                        <span className="text-[11px] text-slate-900 font-semibold block">1. 胸部肺音聽診 (Lung sound)</span>
+                        <p className="text-[10px] text-slate-400 font-sans leading-tight">評估 crackles, 呼吸窘迫或肺水腫表現，胸壁壓痛等排除ACS主訴（2分）</p>
+                      </div>
+                      <div className="flex gap-1 shrink-0">
+                        {[0, 1, 2].map(wt => (
+                          <button
+                            key={wt}
+                            onClick={() => updateScoreItem("physical", "p1", wt)}
+                            className={`w-9 py-1 px-2 rounded-lg text-xs font-mono font-bold border transition-all ${
+                              scoreCard.physical.p1 === wt 
+                                ? "bg-teal-600 border-teal-600 text-white shadow-xs" 
+                                : "bg-white border-slate-350 text-slate-600 hover:bg-slate-50"
+                            }`}
+                          >
+                            {wt}分
+                          </button>
+                        ))}
+                      </div>
                     </div>
-                    <div className="flex gap-1 shrink-0">
-                      {[0, 1, 2].map(wt => (
-                        <button
-                          key={wt}
-                          onClick={() => updateScoreItem("physical", "p1", wt)}
-                          className={`w-9 py-1 px-2 rounded-lg text-xs font-mono font-bold border transition-all ${
-                            scoreCard.physical.p1 === wt 
-                              ? "bg-teal-600 border-teal-600 text-white shadow-xs" 
-                              : "bg-white border-slate-350 text-slate-600 hover:bg-slate-50"
-                          }`}
-                        >
-                          {wt}分
-                        </button>
-                      ))}
+
+                    <div className="p-3 bg-slate-50 border border-slate-150 rounded-xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                      <div className="space-y-1">
+                        <span className="text-[11px] text-slate-900 font-semibold block">2. 心臟與循環評估 (Cardiac sound & CRT)</span>
+                        <p className="text-[10px] text-slate-400 font-sans leading-tight">評估心臟節律（心律不整、低HR）、雜音。評估四肢冰冷/微血管充盈延常等低灌流徵候（2分）</p>
+                      </div>
+                      <div className="flex gap-1 shrink-0">
+                        {[0, 1, 2].map(wt => (
+                          <button
+                            key={wt}
+                            onClick={() => updateScoreItem("physical", "p2", wt)}
+                            className={`w-9 py-1 px-2 rounded-lg text-xs font-mono font-bold border transition-all ${
+                              scoreCard.physical.p2 === wt 
+                                ? "bg-teal-600 border-teal-600 text-white shadow-xs" 
+                                : "bg-white border-slate-350 text-slate-600 hover:bg-slate-50"
+                            }`}
+                          >
+                            {wt}分
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="p-3 bg-slate-50 border border-slate-150 rounded-xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                      <div className="space-y-1">
+                        <span className="text-[11px] text-slate-900 font-semibold block">3. 水分體液狀態評估 (Hydration Check)</span>
+                        <p className="text-[10px] text-slate-400 font-sans leading-tight">核對口腔黏膜乾燥、皮膚彈性下降（1分）、JVP、無肺水腫、偏低尿量（1分）：達標得2分</p>
+                      </div>
+                      <div className="flex gap-1 shrink-0">
+                        {[0, 1, 2].map(wt => (
+                          <button
+                            key={wt}
+                            onClick={() => updateScoreItem("physical", "p3", wt)}
+                            className={`w-9 py-1 px-2 rounded-lg text-xs font-mono font-bold border transition-all ${
+                              scoreCard.physical.p3 === wt 
+                                ? "bg-teal-600 border-teal-600 text-white shadow-xs" 
+                                : "bg-white border-slate-350 text-slate-600 hover:bg-slate-50"
+                            }`}
+                          >
+                            {wt}分
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="p-3 bg-slate-50 border border-slate-150 rounded-xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                      <div className="space-y-1">
+                        <span className="text-[11px] text-slate-950 font-semibold block">4. 感染來源與腹部觸診 (Infection Screening)</span>
+                        <p className="text-[10px] text-slate-400 font-sans leading-tight">排除腹部壓痛、CVA knocking pain（腎盂感染排除）（2分）</p>
+                      </div>
+                      <div className="flex gap-1 shrink-0">
+                        {[0, 1, 2].map(wt => (
+                          <button
+                            key={wt}
+                            onClick={() => updateScoreItem("physical", "p4", wt)}
+                            className={`w-9 py-1 px-2 rounded-lg text-xs font-mono font-bold border transition-all ${
+                              scoreCard.physical.p4 === wt 
+                                ? "bg-teal-600 border-teal-600 text-white shadow-xs" 
+                                : "bg-white border-slate-350 text-slate-600 hover:bg-slate-50"
+                            }`}
+                          >
+                            {wt}分
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="p-3 bg-slate-50 border border-slate-150 rounded-xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                      <div className="space-y-1">
+                        <span className="text-[11px] text-slate-950 font-semibold block">5. 意識與神經學理學觸診 (Consciousness)</span>
+                        <p className="text-[10px] text-slate-400 font-sans leading-tight">評估病患反應變慢、譫妄或局部神經學是否有偏癱缺損（2分）</p>
+                      </div>
+                      <div className="flex gap-1 shrink-0">
+                        {[0, 1, 2].map(wt => (
+                          <button
+                            key={wt}
+                            onClick={() => updateScoreItem("physical", "p5", wt)}
+                            className={`w-9 py-1 px-2 rounded-lg text-xs font-mono font-bold border transition-all ${
+                              scoreCard.physical.p5 === wt 
+                                ? "bg-teal-600 border-teal-600 text-white shadow-xs" 
+                                : "bg-white border-slate-350 text-slate-600 hover:bg-slate-50"
+                            }`}
+                          >
+                            {wt}分
+                          </button>
+                        ))}
+                      </div>
                     </div>
                   </div>
-
-                  <div className="p-3 bg-slate-50 border border-slate-150 rounded-xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-                    <div className="space-y-1">
-                      <span className="text-[11px] text-slate-900 font-semibold block">2. 心臟與循環評估 (Cardiac sound & CRT)</span>
-                      <p className="text-[10px] text-slate-400 font-sans leading-tight">評估心臟節律（心律不整、低HR）、雜音。評估四肢冰冷/微血管充盈延常等低灌流徵候（2分）</p>
-                    </div>
-                    <div className="flex gap-1 shrink-0">
-                      {[0, 1, 2].map(wt => (
-                        <button
-                          key={wt}
-                          onClick={() => updateScoreItem("physical", "p2", wt)}
-                          className={`w-9 py-1 px-2 rounded-lg text-xs font-mono font-bold border transition-all ${
-                            scoreCard.physical.p2 === wt 
-                              ? "bg-teal-600 border-teal-600 text-white shadow-xs" 
-                              : "bg-white border-slate-350 text-slate-600 hover:bg-slate-50"
-                          }`}
-                        >
-                          {wt}分
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="p-3 bg-slate-50 border border-slate-150 rounded-xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-                    <div className="space-y-1">
-                      <span className="text-[11px] text-slate-900 font-semibold block">3. 水分體液狀態評估 (Hydration Check)</span>
-                      <p className="text-[10px] text-slate-400 font-sans leading-tight">核對口腔黏膜乾燥、皮膚彈性下降（1分）、JVP、無肺水腫、偏低尿量（1分）：達標得2分</p>
-                    </div>
-                    <div className="flex gap-1 shrink-0">
-                      {[0, 1, 2].map(wt => (
-                        <button
-                          key={wt}
-                          onClick={() => updateScoreItem("physical", "p3", wt)}
-                          className={`w-9 py-1 px-2 rounded-lg text-xs font-mono font-bold border transition-all ${
-                            scoreCard.physical.p3 === wt 
-                              ? "bg-teal-600 border-teal-600 text-white shadow-xs" 
-                              : "bg-white border-slate-350 text-slate-600 hover:bg-slate-50"
-                          }`}
-                        >
-                          {wt}分
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="p-3 bg-slate-50 border border-slate-150 rounded-xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-                    <div className="space-y-1">
-                      <span className="text-[11px] text-slate-950 font-semibold block">4. 感染來源與腹部觸診 (Infection Screening)</span>
-                      <p className="text-[10px] text-slate-400 font-sans leading-tight">排除腹部壓痛、CVA knocking pain（腎盂感染排除）（2分）</p>
-                    </div>
-                    <div className="flex gap-1 shrink-0">
-                      {[0, 1, 2].map(wt => (
-                        <button
-                          key={wt}
-                          onClick={() => updateScoreItem("physical", "p4", wt)}
-                          className={`w-9 py-1 px-2 rounded-lg text-xs font-mono font-bold border transition-all ${
-                            scoreCard.physical.p4 === wt 
-                              ? "bg-teal-600 border-teal-600 text-white shadow-xs" 
-                              : "bg-white border-slate-350 text-slate-600 hover:bg-slate-50"
-                          }`}
-                        >
-                          {wt}分
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="p-3 bg-slate-50 border border-slate-150 rounded-xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-                    <div className="space-y-1">
-                      <span className="text-[11px] text-slate-950 font-semibold block">5. 意識與神經學理學觸診 (Consciousness)</span>
-                      <p className="text-[10px] text-slate-400 font-sans leading-tight">評估病患反應變慢、譫妄或局部神經學是否有偏癱缺損（2分）</p>
-                    </div>
-                    <div className="flex gap-1 shrink-0">
-                      {[0, 1, 2].map(wt => (
-                        <button
-                          key={wt}
-                          onClick={() => updateScoreItem("physical", "p5", wt)}
-                          className={`w-9 py-1 px-2 rounded-lg text-xs font-mono font-bold border transition-all ${
-                            scoreCard.physical.p5 === wt 
-                              ? "bg-teal-600 border-teal-600 text-white shadow-xs" 
-                              : "bg-white border-slate-350 text-slate-600 hover:bg-slate-50"
-                          }`}
-                        >
-                          {wt}分
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
+                )}
 
                 {/* Global PE Rating */}
                 <div className="mt-6 p-4 border border-indigo-150 bg-indigo-50/40 rounded-2xl space-y-2">
@@ -843,7 +1031,11 @@ export default function CandidateScorer({ onEvaluationSaved, selectedCandidateId
                     <h5 className="font-sans font-bold text-slate-800 text-sm">身體診察整體評審</h5>
                   </div>
                   <p className="text-[11px] text-slate-500 leading-tight">
-                    評估考生對急診生命危險指標的物理檢核完整度 (0 ~ 5 分評評)。
+                    {caseIdx === 1 ? (
+                      "評估考生對急診產婦急重症生命危險指標的物理檢核完整度 (0 ~ 5 分評級)。"
+                    ) : (
+                      "評估考生對急診生命危險指標的物理檢核完整度 (0 ~ 5 分評評)。"
+                    )}
                   </p>
                   <div className="flex flex-wrap gap-1.5 pt-2">
                     {[0, 1, 2, 3, 4, 5].map(gWt => (
@@ -870,69 +1062,104 @@ export default function CandidateScorer({ onEvaluationSaved, selectedCandidateId
               <div className="space-y-4 animate-fade-in" id="scorer-section-dx">
                 <div className="space-y-3">
                   <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest font-sans">
-                    臆斷(Differential Impression)合理性評核清單
+                    {caseIdx === 1 ? "臆斷 (Impression / Differential Diagnosis) 合理性核對 (Case 2: 子宮破裂)" : "臆斷(Differential Impression)合理性評核清單"}
                   </h4>
-                  <p className="text-[11px] text-slate-400">考生於口面試前，應主動提出的臆斷病因（每項滿足得 1 分）：</p>
+                  <p className="text-[11px] text-slate-400">
+                    {caseIdx === 1 ? "考生應主動提出的臨床診斷，請選取對應的得分（最高11分）：" : "考生於口面試前，應主動提出的臆斷病因（每項滿足得 1 分）："}
+                  </p>
 
-                  <div className="p-3 bg-slate-50 border border-slate-150 rounded-xl flex justify-between items-center gap-2">
-                    <span className="text-xs text-slate-800 font-medium">1. 不穩定的 Bradyarrhythmia (SSS, AV block, slow Af)</span>
-                    <button
-                      onClick={() => updateScoreItem("diagnosis", "d1", scoreCard.diagnosis.d1 ? 0 : 1)}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold ${
-                        scoreCard.diagnosis.d1 ? "bg-indigo-600 text-white" : "bg-white border text-slate-600"
-                      }`}
-                    >
-                      {scoreCard.diagnosis.d1 ? "已提出 (1分)" : "未提及 (0分)"}
-                    </button>
-                  </div>
+                  {caseIdx === 1 ? (
+                    <>
+                      {[
+                        { key: "d1", label: "1. 骨盆腔發炎/腹膜炎 (PID / Peritonitis)", max: 1 },
+                        { key: "d2", label: "2. 低血容積休克/失血性休克 (Hypovolemic / Hemorrhagic Shock)", max: 2 },
+                        { key: "d3", label: "3. 子宮破裂 (Uterine Rupture) - 核心關鍵臆斷", max: 5 },
+                        { key: "d4", label: "4. 敗血性休克/產褥熱/骨盆腔膿瘍 (Septic Shock / Puerperal Fever)", max: 2 },
+                        { key: "d5", label: "5. 胎盤早期剝離 (Abruptio Placentae)", max: 1 }
+                      ].map((item) => (
+                        <div key={item.key} className="p-3 bg-slate-50 border border-slate-150 rounded-xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                          <span className="text-xs text-slate-800 font-semibold">{item.label}</span>
+                          <div className="flex gap-1 shrink-0">
+                            {Array.from({ length: item.max + 1 }).map((_, wt) => (
+                              <button
+                                key={wt}
+                                onClick={() => updateScoreItem("diagnosis", item.key, wt)}
+                                className={`px-3 py-1.5 rounded-lg text-xs font-extrabold border transition-all ${
+                                  (scoreCard.diagnosis as any)[item.key] === wt
+                                    ? "bg-indigo-600 border-indigo-600 text-white shadow-xs"
+                                    : "bg-white border-slate-350 text-slate-600 hover:bg-slate-50"
+                                }`}
+                              >
+                                {wt}分
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </>
+                  ) : (
+                    <>
+                      <div className="p-3 bg-slate-50 border border-slate-150 rounded-xl flex justify-between items-center gap-2">
+                        <span className="text-xs text-slate-800 font-medium">1. 不穩定的 Bradyarrhythmia (SSS, AV block, slow Af)</span>
+                        <button
+                          onClick={() => updateScoreItem("diagnosis", "d1", scoreCard.diagnosis.d1 ? 0 : 1)}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-semibold ${
+                            scoreCard.diagnosis.d1 ? "bg-indigo-600 text-white" : "bg-white border text-slate-600"
+                          }`}
+                        >
+                          {scoreCard.diagnosis.d1 ? "已提出 (1分)" : "未提及 (0分)"}
+                        </button>
+                      </div>
 
-                  <div className="p-3 bg-slate-50 border border-slate-150 rounded-xl flex justify-between items-center gap-2">
-                    <span className="text-xs text-slate-800 font-medium">2. 藥物（AV結阻滯劑）相關心搏過慢</span>
-                    <button
-                      onClick={() => updateScoreItem("diagnosis", "d2", scoreCard.diagnosis.d2 ? 0 : 1)}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold ${
-                        scoreCard.diagnosis.d2 ? "bg-indigo-600 text-white" : "bg-white border text-slate-600"
-                      }`}
-                    >
-                      {scoreCard.diagnosis.d2 ? "已提出 (1分)" : "未提及 (0分)"}
-                    </button>
-                  </div>
+                      <div className="p-3 bg-slate-50 border border-slate-150 rounded-xl flex justify-between items-center gap-2">
+                        <span className="text-xs text-slate-800 font-medium">2. 藥物（AV結阻滯劑）相關心搏過慢</span>
+                        <button
+                          onClick={() => updateScoreItem("diagnosis", "d2", scoreCard.diagnosis.d2 ? 0 : 1)}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-semibold ${
+                            scoreCard.diagnosis.d2 ? "bg-indigo-600 text-white" : "bg-white border text-slate-600"
+                          }`}
+                        >
+                          {scoreCard.diagnosis.d2 ? "已提出 (1分)" : "未提及 (0分)"}
+                        </button>
+                      </div>
 
-                  <div className="p-3 bg-slate-50 border border-slate-150 rounded-xl flex justify-between items-center gap-2">
-                    <span className="text-xs text-slate-800 font-medium">3. 電解質異常（含代謝性高血鉀）</span>
-                    <button
-                      onClick={() => updateScoreItem("diagnosis", "d3", scoreCard.diagnosis.d3 ? 0 : 1)}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold ${
-                        scoreCard.diagnosis.d3 ? "bg-indigo-600 text-white" : "bg-white border text-slate-600"
-                      }`}
-                    >
-                      {scoreCard.diagnosis.d3 ? "已提出 (1分)" : "未提及 (0分)"}
-                    </button>
-                  </div>
+                      <div className="p-3 bg-slate-50 border border-slate-150 rounded-xl flex justify-between items-center gap-2">
+                        <span className="text-xs text-slate-800 font-medium">3. 電解質異常（含代謝性高血鉀）</span>
+                        <button
+                          onClick={() => updateScoreItem("diagnosis", "d3", scoreCard.diagnosis.d3 ? 0 : 1)}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-semibold ${
+                            scoreCard.diagnosis.d3 ? "bg-indigo-600 text-white" : "bg-white border text-slate-600"
+                          }`}
+                        >
+                          {scoreCard.diagnosis.d3 ? "已提出 (1分)" : "未提及 (0分)"}
+                        </button>
+                      </div>
 
-                  <div className="p-3 bg-slate-50 border border-slate-150 rounded-xl flex justify-between items-center gap-2">
-                    <span className="text-xs text-slate-800 font-medium">4. 脫水導致末梢血容量性休克</span>
-                    <button
-                      onClick={() => updateScoreItem("diagnosis", "d4", scoreCard.diagnosis.d4 ? 0 : 1)}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold ${
-                        scoreCard.diagnosis.d4 ? "bg-indigo-600 text-white" : "bg-white border text-slate-600"
-                      }`}
-                    >
-                      {scoreCard.diagnosis.d4 ? "已提出 (1分)" : "未提及 (0分)"}
-                    </button>
-                  </div>
+                      <div className="p-3 bg-slate-50 border border-slate-150 rounded-xl flex justify-between items-center gap-2">
+                        <span className="text-xs text-slate-800 font-medium">4. 脫水導致末梢血容量性休克</span>
+                        <button
+                          onClick={() => updateScoreItem("diagnosis", "d4", scoreCard.diagnosis.d4 ? 0 : 1)}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-semibold ${
+                            scoreCard.diagnosis.d4 ? "bg-indigo-600 text-white" : "bg-white border text-slate-600"
+                          }`}
+                        >
+                          {scoreCard.diagnosis.d4 ? "已提出 (1分)" : "未提及 (0分)"}
+                        </button>
+                      </div>
 
-                  <div className="p-3 bg-slate-50 border border-slate-150 rounded-xl flex justify-between items-center gap-2">
-                    <span className="text-xs text-slate-800 font-medium">5. ACS (急性冠心症，特別是 inferior wall MI 下壁心肌梗塞)</span>
-                    <button
-                      onClick={() => updateScoreItem("diagnosis", "d5", scoreCard.diagnosis.d5 ? 0 : 1)}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold ${
-                        scoreCard.diagnosis.d5 ? "bg-indigo-600 text-white" : "bg-white border text-slate-600"
-                      }`}
-                    >
-                      {scoreCard.diagnosis.d5 ? "已提出 (1分)" : "未提及 (0分)"}
-                    </button>
-                  </div>
+                      <div className="p-3 bg-slate-50 border border-slate-150 rounded-xl flex justify-between items-center gap-2">
+                        <span className="text-xs text-slate-800 font-medium">5. ACS (急性冠心症，特別是 inferior wall MI 下壁心肌梗塞)</span>
+                        <button
+                          onClick={() => updateScoreItem("diagnosis", "d5", scoreCard.diagnosis.d5 ? 0 : 1)}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-semibold ${
+                            scoreCard.diagnosis.d5 ? "bg-indigo-600 text-white" : "bg-white border text-slate-600"
+                          }`}
+                        >
+                          {scoreCard.diagnosis.d5 ? "已提出 (1分)" : "未提及 (0分)"}
+                        </button>
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
             )}
@@ -940,75 +1167,118 @@ export default function CandidateScorer({ onEvaluationSaved, selectedCandidateId
             {/* SECTION 4: 安排的檢查與判讀 */}
             {activeTab === 3 && (
               <div className="space-y-4 animate-fade-in" id="scorer-section-labs">
-                <div className="space-y-3">
-                  <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest font-sans">
-                    輔助檢查决策與結果判讀
-                  </h4>
-
-                  <div className="p-3 bg-slate-50 border border-slate-150 rounded-xl flex justify-between items-center gap-2">
-                    <div className="space-y-0.5">
-                      <span className="text-xs text-slate-900 font-bold block">1. 開立急診 EKG 並對比三天前 EKG (1分)</span>
-                      <p className="text-[10px] text-slate-400 font-sans">判讀出竇性心動過緩、呈現高聳 T 波。</p>
-                    </div>
-                    <button
-                      onClick={() => updateScoreItem("investigations", "i1", scoreCard.investigations.i1 ? 0 : 1)}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold ${
-                        scoreCard.investigations.i1 ? "bg-teal-600 text-white" : "bg-white border text-slate-600"
-                      }`}
-                    >
-                      {scoreCard.investigations.i1 ? "已判讀 (1分)" : "未達標 (0分)"}
-                    </button>
+                {caseIdx === 1 ? (
+                  <div className="space-y-3">
+                    <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest font-sans">
+                      輔助檢查决策與結果判讀 (Case 2: 子宮破裂)
+                    </h4>
+                    
+                    {[
+                      { key: "i1", label: "1. 評估胎兒狀態：胎心音聽診、NST、床邊胎兒監視 (1分)", sub: "主動要求評估胎兒狀態(胎心音聽診、床頭NST監視或超音波查看胎兒心跳延遲/過慢)得 1 分", max: 1 },
+                      { key: "i2", label: "2. 開立急診超音波(床邊FAST/M-mode)：評估子宮完整性與骨盆腔積血 (2分)", sub: "主動要求超音波評估，正確指出子宮壁缺損(1分)及骨盆/腹腔大量游離積液(1分)得 2 分", max: 2 },
+                      { key: "i3", label: "3. 抽血檢驗：CBC/DC(1)、交叉配血(1)、凝血指標(PT/APTT)等", sub: "開立血常規檢查(CBC)、急送交叉配血/備血(1分)與凝血功能以防DIC(1分)共 2 分", max: 2 },
+                      { key: "i4", label: "4. 動脈/靜脈血氣分析(ABG/VBG)與乳酸表現評估 (1分)", sub: "開立血氣評估酸鹼(乳酸過高/嚴重代謝性酸血症)得 1 分", max: 1 }
+                    ].map((item) => (
+                      <div key={item.key} className="p-3 bg-slate-50 border border-slate-150 rounded-xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                        <div className="space-y-0.5">
+                          <span className="text-xs text-slate-900 font-bold block">{item.label}</span>
+                          <p className="text-[10px] text-slate-400 font-sans leading-tight">{item.sub}</p>
+                        </div>
+                        <div className="flex gap-1 shrink-0">
+                          {Array.from({ length: item.max + 1 }).map((_, wt) => (
+                            <button
+                              key={wt}
+                              onClick={() => updateScoreItem("investigations", item.key, wt)}
+                              className={`w-9 py-1 px-2 rounded-lg text-xs font-mono font-bold border transition-all ${
+                                (scoreCard.investigations as any)[item.key] === wt
+                                  ? "bg-teal-600 border-teal-600 text-white shadow-xs" 
+                                  : "bg-white border-slate-350 text-slate-600 hover:bg-slate-50"
+                              }`}
+                            >
+                              {wt}分
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
                   </div>
+                ) : (
+                  <div className="space-y-3">
+                    <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest font-sans">
+                      輔助檢查决策與結果判讀
+                    </h4>
 
-                  <div className="p-3 bg-slate-50 border border-slate-150 rounded-xl flex justify-between items-center gap-2">
-                    <div className="space-y-0.5">
-                      <span className="text-xs text-slate-900 font-bold block">2. 開立完整血液生化 (2分)</span>
-                      <p className="text-[10px] text-slate-400 font-sans">重點為：鉀離子、BUN、Creatinine、血糖、VBG 血氣。正確判讀出 K=6.8 超標及 AKI。</p>
+                    <div className="p-3 bg-slate-50 border border-slate-150 rounded-xl flex justify-between items-center gap-2">
+                      <div className="space-y-0.5">
+                        <span className="text-xs text-slate-900 font-bold block">1. 開立急診 EKG 並對比三天前 EKG (1分)</span>
+                        <p className="text-[10px] text-slate-400 font-sans">判讀出竇性心動過緩、呈現高聳 T 波。</p>
+                      </div>
+                      <button
+                        onClick={() => updateScoreItem("investigations", "i1", scoreCard.investigations.i1 ? 0 : 1)}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold ${
+                          scoreCard.investigations.i1 ? "bg-teal-600 text-white" : "bg-white border text-slate-600"
+                        }`}
+                      >
+                        {scoreCard.investigations.i1 ? "已判讀 (1分)" : "未達標 (0分)"}
+                      </button>
                     </div>
-                    <div className="flex gap-1 shrink-0">
-                      {[0, 1, 2].map(wt => (
-                        <button
-                          key={wt}
-                          onClick={() => updateScoreItem("investigations", "i2", wt)}
-                          className={`w-9 py-1 px-2 rounded-lg text-xs font-mono font-bold border transition-all ${
-                            scoreCard.investigations.i2 === wt 
-                              ? "bg-teal-600 border-teal-600 text-white shadow-xs" 
-                              : "bg-white border-slate-350 text-slate-600 hover:bg-slate-50"
-                          }`}
-                        >
-                          {wt}分
-                        </button>
-                      ))}
+
+                    <div className="p-3 bg-slate-50 border border-slate-150 rounded-xl flex justify-between items-center gap-2">
+                      <div className="space-y-0.5">
+                        <span className="text-xs text-slate-900 font-bold block">2. 開立完整血液生化 (2分)</span>
+                        <p className="text-[10px] text-slate-400 font-sans">重點為：鉀離子、BUN、Creatinine、血糖、VBG 血氣。正確判讀出 K=6.8 超標及 AKI。</p>
+                      </div>
+                      <div className="flex gap-1 shrink-0">
+                        {[0, 1, 2].map(wt => (
+                          <button
+                            key={wt}
+                            onClick={() => updateScoreItem("investigations", "i2", wt)}
+                            className={`w-9 py-1 px-2 rounded-lg text-xs font-mono font-bold border transition-all ${
+                              scoreCard.investigations.i2 === wt 
+                                ? "bg-teal-600 border-teal-600 text-white shadow-xs" 
+                                : "bg-white border-slate-350 text-slate-600 hover:bg-slate-50"
+                            }`}
+                          >
+                            {wt}分
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="p-3 bg-slate-50 border border-slate-150 rounded-xl flex justify-between items-center gap-2">
+                      <div className="space-y-0.5">
+                        <span className="text-xs text-slate-900 font-bold block">3. 開立 CXR 胸部 X 光片 (1分)</span>
+                        <p className="text-[10px] text-slate-400 font-sans">排除肺充血、證實肺野乾淨支援低容狀態。</p>
+                      </div>
+                      <button
+                        onClick={() => updateScoreItem("investigations", "i3", scoreCard.investigations.i3 ? 0 : 1)}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold ${
+                          scoreCard.investigations.i3 ? "bg-teal-600 text-white" : "bg-white border text-slate-600"
+                        }`}
+                      >
+                        {scoreCard.investigations.i3 ? "已判讀 (1分)" : "未達標 (0分)"}
+                      </button>
                     </div>
                   </div>
-
-                  <div className="p-3 bg-slate-50 border border-slate-150 rounded-xl flex justify-between items-center gap-2">
-                    <div className="space-y-0.5">
-                      <span className="text-xs text-slate-900 font-bold block">3. 開立 CXR 胸部 X 光片 (1分)</span>
-                      <p className="text-[10px] text-slate-400 font-sans">排除肺充血、證實肺野乾淨支援低容狀態。</p>
-                    </div>
-                    <button
-                      onClick={() => updateScoreItem("investigations", "i3", scoreCard.investigations.i3 ? 0 : 1)}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold ${
-                        scoreCard.investigations.i3 ? "bg-teal-600 text-white" : "bg-white border text-slate-600"
-                      }`}
-                    >
-                      {scoreCard.investigations.i3 ? "已判讀 (1分)" : "未達標 (0分)"}
-                    </button>
-                  </div>
-                </div>
+                )}
 
                 {/* Global Labs rating */}
                 <div className="mt-6 p-4 border border-indigo-150 bg-indigo-50/40 rounded-2xl space-y-2">
                   <div className="flex gap-2 items-center">
                     <Award className="w-5 h-5 text-indigo-600" />
-                    <h5 className="font-sans font-bold text-slate-800 text-sm">檢驗檢查與判讀整體評分 (0 ~ 8 分)</h5>
+                    <h5 className="font-sans font-bold text-slate-800 text-sm">
+                      {caseIdx === 1 ? "檢驗檢查與判讀整體評分 (0 ~ 9 分)" : "檢驗檢查與判讀整體評分 (0 ~ 8 分)"}
+                    </h5>
                   </div>
                   <p className="text-[11px] text-slate-500 leading-tight">
-                    評估考生對急診常見心電圖高尖 T、高鉀 AKI、ECG 聯結與用藥、低灌流反應性的臨床整合。
+                    {caseIdx === 1 ? (
+                      "評估考生對急診常見床頭超音波FAST應用、不全生命徵象與胎心音監視判讀、酸血DIC狀態之整合判斷力。"
+                    ) : (
+                      "評估考生對急診常見心電圖高尖 T、高鉀 AKI、ECG 聯結與用藥、低灌流反應性的臨床整合。"
+                    )}
                   </p>
                   <div className="flex flex-wrap gap-1.5 pt-2">
-                    {[0, 1, 2, 3, 4, 5, 6, 7, 8].map(gWt => (
+                    {(caseIdx === 1 ? [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] : [0, 1, 2, 3, 4, 5, 6, 7, 8]).map(gWt => (
                       <button
                         key={gWt}
                         type="button"
@@ -1030,222 +1300,308 @@ export default function CandidateScorer({ onEvaluationSaved, selectedCandidateId
             {/* SECTION 5: 鑑別診斷 */}
             {activeTab === 4 && (
               <div className="space-y-4 animate-fade-in" id="scorer-section-dd">
-                <div className="space-y-3">
-                  <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest font-sans">
-                    核心及排除鑑別診斷(Differential Diagnosis)
-                  </h4>
+                {caseIdx === 1 ? (
+                  <div className="space-y-3">
+                    <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest font-sans">
+                      核心及排除鑑別診斷 (Case 2: 子宮破裂)
+                    </h4>
 
-                  <div className="p-3 bg-slate-50 border border-slate-150 rounded-xl flex justify-between items-center gap-2">
-                    <div className="space-y-0.5">
-                      <span className="text-xs text-slate-900 font-bold block">1. 辨識出關鍵核心：BRASH Syndrome (3分)</span>
-                      <p className="text-[10px] text-slate-400 font-sans">若能主提並指名 BRASH 的完整機制由來，直接給滿分 3 分。</p>
-                    </div>
-                    <div className="flex gap-1 shrink-0">
-                      {[0, 1, 2, 3].map(wt => (
-                        <button
-                          key={wt}
-                          onClick={() => updateScoreItem("differential", "dd1", wt)}
-                          className={`w-9 py-1 px-2 rounded-lg text-xs font-mono font-bold border transition-all ${
-                            scoreCard.differential.dd1 === wt 
-                              ? "bg-teal-600 border-teal-600 text-white shadow-xs" 
-                              : "bg-white border-slate-350 text-slate-600 hover:bg-slate-50"
-                          }`}
-                        >
-                          {wt}分
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="p-3 bg-slate-50 border border-slate-150 rounded-xl flex justify-between items-center gap-2">
-                    <span className="text-xs text-slate-800 font-medium">2. 藥物阻斷劑引起的 bradycarida 反應</span>
-                    <button
-                      onClick={() => updateScoreItem("differential", "dd2", scoreCard.differential.dd2 ? 0 : 1)}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold ${
-                        scoreCard.differential.dd2 ? "bg-teal-600 text-white" : "bg-white border text-slate-600"
-                      }`}
-                    >
-                      {scoreCard.differential.dd2 ? "已提及 (1分)" : "未提及 (0分)"}
-                    </button>
-                  </div>
-
-                  <div className="p-3 bg-slate-55 border border-slate-150 rounded-xl flex justify-between items-center gap-2">
-                    <span className="text-xs text-slate-800 font-medium">3. 代謝性嚴重高血鉀合併心率阻滯</span>
-                    <button
-                      onClick={() => updateScoreItem("differential", "dd3", scoreCard.differential.dd3 ? 0 : 1)}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold ${
-                        scoreCard.differential.dd3 ? "bg-teal-600 text-white" : "bg-white border text-slate-600"
-                      }`}
-                    >
-                      {scoreCard.differential.dd3 ? "已提及 (1分)" : "未提及 (0分)"}
-                    </button>
-                  </div>
-
-                  <div className="p-3 bg-slate-55 border border-slate-150 rounded-xl flex justify-between items-center gap-2">
-                    <span className="text-xs text-slate-800 font-medium">4. 極度脫水導致嚴重腎前性 AKI、誘發低血壓休克以及高鉀循環</span>
-                    <button
-                      onClick={() => updateScoreItem("differential", "dd4", scoreCard.differential.dd4 ? 0 : 1)}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold ${
-                        scoreCard.differential.dd4 ? "bg-teal-600 text-white" : "bg-white border text-slate-600"
-                      }`}
-                    >
-                      {scoreCard.differential.dd4 ? "已提及 (1分)" : "未提及 (0分" }
-                    </button>
-                  </div>
-                </div>
-
-                {/* Global DD rating */}
-                <div className="mt-6 p-4 border border-indigo-150 bg-indigo-50/40 rounded-2xl space-y-2">
-                  <div className="flex gap-2 items-center">
-                    <Award className="w-5 h-5 text-indigo-600" />
-                    <h5 className="font-sans font-bold text-slate-800 text-sm">鑑別診斷整體評分 (0 ~ 4)</h5>
-                  </div>
-                  <p className="text-[11px] text-slate-500 leading-tight">
-                    評估考生對疾病排序與急診高急迫性的判斷邏輯。
-                  </p>
-                  <div className="flex flex-wrap gap-1.5 pt-2">
-                    {[0, 1, 2, 3, 4].map(gWt => (
-                      <button
-                        key={gWt}
-                        type="button"
-                        onClick={() => updateScoreItem("differential", "global", gWt)}
-                        className={`py-1.5 px-3 rounded-lg text-xs font-bold border transition-all ${
-                          scoreCard.differential.global === gWt 
-                            ? "bg-indigo-600 border-indigo-600 text-white shadow-xs" 
-                            : "bg-white border-slate-300 text-slate-600 hover:bg-slate-50"
-                        }`}
-                      >
-                        {gWt} 分
-                      </button>
+                    {[
+                      { key: "dd1", label: "1. 早期急腹症產科急症與高危手術史診斷（2分）", sub: "主動提及早期急腹症之可能，並能高度關聯重要手術史（剖腹產/子宮肌瘤切除）之關聯得 2 分", max: 2 },
+                      { key: "dd2", label: "2. 首要臆斷子宮破裂與產前大出血（6分）", sub: "主動列子宮破裂為最關鍵首要臆斷，並詳述大量內出血及胎兒窘迫（極高胎死腹中風險）之學理機轉得 6 分", max: 6 },
+                      { key: "dd3", label: "3. 鑑別診斷感染性/失血性休克等相關病理機制（4分）", sub: "主動區分失血性休克（Hb驟降至4）與敗血性休克（體溫38.7、WBC 2萬、可能合併絨毛膜羊膜炎或腹膜炎）之並存表現得 4 分", max: 4 }
+                    ].map((item) => (
+                      <div key={item.key} className="p-3 bg-slate-50 border border-slate-150 rounded-xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                        <div className="space-y-0.5">
+                          <span className="text-xs text-slate-900 font-bold block">{item.label}</span>
+                          <p className="text-[10px] text-slate-400 font-sans leading-tight">{item.sub}</p>
+                        </div>
+                        <div className="flex gap-1 shrink-0">
+                          {Array.from({ length: item.max + 1 }).map((_, wt) => (
+                            <button
+                              key={wt}
+                              onClick={() => updateScoreItem("differential", item.key, wt)}
+                              className={`w-9 py-1 px-2 rounded-lg text-xs font-mono font-bold border transition-all ${
+                                (scoreCard.differential as any)[item.key] === wt
+                                  ? "bg-teal-600 border-teal-600 text-white shadow-xs" 
+                                  : "bg-white border-slate-350 text-slate-600 hover:bg-slate-50"
+                              }`}
+                            >
+                              {wt}分
+                            </button>
+                          ))}
+                        </div>
+                      </div>
                     ))}
                   </div>
-                </div>
+                ) : (
+                  <>
+                    <div className="space-y-3">
+                      <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest font-sans">
+                        核心及排除鑑別診斷(Differential Diagnosis)
+                      </h4>
+
+                      <div className="p-3 bg-slate-50 border border-slate-150 rounded-xl flex justify-between items-center gap-2">
+                        <div className="space-y-0.5">
+                          <span className="text-xs text-slate-900 font-bold block">1. 辨識出關鍵核心：BRASH Syndrome (3分)</span>
+                          <p className="text-[10px] text-slate-400 font-sans">若能主提並指名 BRASH 的完整機制由來，直接給滿分 3 分。</p>
+                        </div>
+                        <div className="flex gap-1 shrink-0">
+                          {[0, 1, 2, 3].map(wt => (
+                            <button
+                              key={wt}
+                              onClick={() => updateScoreItem("differential", "dd1", wt)}
+                              className={`w-9 py-1 px-2 rounded-lg text-xs font-mono font-bold border transition-all ${
+                                scoreCard.differential.dd1 === wt 
+                                  ? "bg-teal-600 border-teal-600 text-white shadow-xs" 
+                                  : "bg-white border-slate-350 text-slate-600 hover:bg-slate-50"
+                              }`}
+                            >
+                              {wt}分
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="p-3 bg-slate-50 border border-slate-150 rounded-xl flex justify-between items-center gap-2">
+                        <span className="text-xs text-slate-800 font-medium">2. 藥物阻斷劑引起的 bradycarida 反應</span>
+                        <button
+                          onClick={() => updateScoreItem("differential", "dd2", scoreCard.differential.dd2 ? 0 : 1)}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-semibold ${
+                            scoreCard.differential.dd2 ? "bg-teal-600 text-white" : "bg-white border text-slate-600"
+                          }`}
+                        >
+                          {scoreCard.differential.dd2 ? "已提及 (1分)" : "未提及 (0分)"}
+                        </button>
+                      </div>
+
+                      <div className="p-3 bg-slate-55 border border-slate-150 rounded-xl flex justify-between items-center gap-2">
+                        <span className="text-xs text-slate-800 font-medium">3. 代謝性嚴重高血鉀合併心率阻滯</span>
+                        <button
+                          onClick={() => updateScoreItem("differential", "dd3", scoreCard.differential.dd3 ? 0 : 1)}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-semibold ${
+                            scoreCard.differential.dd3 ? "bg-teal-600 text-white" : "bg-white border text-slate-600"
+                          }`}
+                        >
+                          {scoreCard.differential.dd3 ? "已提及 (1分)" : "未提及 (0分)"}
+                        </button>
+                      </div>
+
+                      <div className="p-3 bg-slate-55 border border-slate-150 rounded-xl flex justify-between items-center gap-2">
+                        <span className="text-xs text-slate-805 font-medium">4. 極度脫水導致嚴重腎前性 AKI、誘發低血壓休克以及高鉀循環</span>
+                        <button
+                          onClick={() => updateScoreItem("differential", "dd4", scoreCard.differential.dd4 ? 0 : 1)}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-semibold ${
+                            scoreCard.differential.dd4 ? "bg-teal-600 text-white" : "bg-white border text-slate-600"
+                          }`}
+                        >
+                          {scoreCard.differential.dd4 ? "已提及 (1分)" : "未提及 (0分)"}
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Global DD rating */}
+                    <div className="mt-6 p-4 border border-indigo-150 bg-indigo-50/40 rounded-2xl space-y-2">
+                      <div className="flex gap-2 items-center">
+                        <Award className="w-5 h-5 text-indigo-600" />
+                        <h5 className="font-sans font-bold text-slate-800 text-sm">
+                          鑑別診斷整體評分 (0 ~ 4)
+                        </h5>
+                      </div>
+                      <p className="text-[11px] text-slate-500 leading-tight">
+                        評估考生對疾病排序與急診高急迫性的判斷邏輯。
+                      </p>
+                      <div className="flex flex-wrap gap-1.5 pt-2">
+                        {[0, 1, 2, 3, 4].map(gWt => (
+                          <button
+                            key={gWt}
+                            type="button"
+                            onClick={() => updateScoreItem("differential", "global", gWt)}
+                            className={`py-1.5 px-3 rounded-lg text-xs font-bold border transition-all ${
+                              scoreCard.differential.global === gWt 
+                                ? "bg-indigo-600 border-indigo-600 text-white shadow-xs" 
+                                : "bg-white border-slate-300 text-slate-600 hover:bg-slate-50"
+                            }`}
+                          >
+                            {gWt} 分
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
             )}
 
             {/* SECTION 6: 治療處置 (Management) */}
             {activeTab === 5 && (
               <div className="space-y-4 animate-fade-in" id="scorer-section-tx">
-                <div className="space-y-3">
-                  <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest font-sans">
-                    急救穩定處置與重降鉀治療決策
-                  </h4>
+                {caseIdx === 1 ? (
+                  <div className="space-y-3">
+                    <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest font-sans">
+                      急救穩定處置與產科手術決策 (Case 2: 子宮破裂)
+                    </h4>
 
-                  <div className="p-3 bg-slate-50 border border-slate-150 rounded-xl flex justify-between items-center gap-2">
-                    <div className="space-y-0.5">
-                      <span className="text-xs text-slate-905 font-bold block">1. 初始穩定監測 (1分)</span>
-                      <p className="text-[10px] text-slate-400">接 EKG Monitor, 建立 2 條 IV 輸液管路, 給氧等基礎照護。</p>
-                    </div>
-                    <button
-                      onClick={() => updateScoreItem("treatment", "tx1", scoreCard.treatment.tx1 ? 0 : 1)}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold ${
-                        scoreCard.treatment.tx1 ? "bg-teal-600 text-white" : "bg-white border text-slate-600"
-                      }`}
-                    >
-                      {scoreCard.treatment.tx1 ? "已達成 (1分)" : "未達成 (0分)"}
-                    </button>
+                    {[
+                      { key: "tx1", label: "1. 初始穩定處置 (1分)", sub: "給予 NRM 高流量氧氣、快速建立 2 條大型靜脈 (IV) 輸液通路得 1 分", max: 1 },
+                      { key: "tx2", label: "2. 大量輸液與輸血復甦 (3分)", sub: "啟動大量輸血協定 (MTP)、備 O 型陰/陽性血液（紅血球及血漿）快速滴注復甦得 3 分", max: 3 },
+                      { key: "tx3", label: "3. 廣效性抗生素給予 (1分)", sub: "因應發熱、可疑腹膜炎或感染，主動開立廣效抗生素得 1 分", max: 1 },
+                      { key: "tx4", label: "4. 緊急照會產科、聯絡手術室備刀 (3分)", sub: "立刻照會產科主治醫師並進行直接口頭溝通、聯絡開刀房第一時間緊急備刀與剖腹手術得 3 分", max: 3 },
+                      { key: "tx5", label: "5. 照會小兒科/新生兒加護病房 (1分)", sub: "考量懷孕 27 週極度早產兒、通知 NICU 團隊預備急救插管及照護設備得 1 分", max: 1 },
+                      { key: "tx6", label: "6. 子宮左偏 (LUD, Left Uterine Displacement) (2分)", sub: "當病人躺平時、主動手動將子宮推向左側以減輕對下腔靜脈壓迫、增加心臟回流血量得 2 分", max: 2 },
+                      { key: "tx7", label: "7. 瀕死剖腹產 (Perimortem C-section, PMCS) 決策 (2分)", sub: "在病人突發 Cardiac Arrest 後，若進行常規復甦無效、應在 4-5 分鐘內於急診直接執行 PMCS 剖腹接生以搶救母嬰得 2 分", max: 2 }
+                    ].map((item) => (
+                      <div key={item.key} className="p-3 bg-slate-50 border border-slate-150 rounded-xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                        <div className="space-y-0.5">
+                          <span className="text-xs text-slate-900 font-bold block">{item.label}</span>
+                          <p className="text-[10px] text-slate-400 font-sans leading-tight">{item.sub}</p>
+                        </div>
+                        <div className="flex gap-1 shrink-0">
+                          {Array.from({ length: item.max + 1 }).map((_, wt) => (
+                            <button
+                              key={wt}
+                              onClick={() => updateScoreItem("treatment", item.key, wt)}
+                              className={`w-9 py-1 px-2 rounded-lg text-xs font-mono font-bold border transition-all ${
+                                (scoreCard.treatment as any)[item.key] === wt
+                                  ? "bg-teal-600 border-teal-600 text-white shadow-xs" 
+                                  : "bg-white border-slate-350 text-slate-600 hover:bg-slate-50"
+                              }`}
+                            >
+                              {wt}分
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
                   </div>
+                ) : (
+                  <div className="space-y-3">
+                    <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest font-sans">
+                      急急穩定處置與重降鉀治療決策
+                    </h4>
 
-                  <div className="p-3 bg-slate-50 border border-slate-150 rounded-xl flex justify-between items-center gap-2">
-                    <div className="space-y-0.5">
-                      <span className="text-xs text-slate-905 font-bold block">2. 處理 Unstable bradycardia (3分)</span>
-                      <p className="text-[10px] text-slate-400">考慮給予第一線 Atropine 0.5-1.0mg、無效則備 Epinephrine 或 Dopamine 輸注、同步架設外部節律器(TCP)。</p>
+                    <div className="p-3 bg-slate-50 border border-slate-150 rounded-xl flex justify-between items-center gap-2">
+                      <div className="space-y-0.5">
+                        <span className="text-xs text-slate-910 font-bold block">1. 初始穩定監測 (1分)</span>
+                        <p className="text-[10px] text-slate-400">接 EKG Monitor, 建立 2 條 IV 輸液管路, 給氧等基礎照護。</p>
+                      </div>
+                      <button
+                        onClick={() => updateScoreItem("treatment", "tx1", scoreCard.treatment.tx1 ? 0 : 1)}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold ${
+                          scoreCard.treatment.tx1 ? "bg-teal-600 text-white" : "bg-white border text-slate-600"
+                        }`}
+                      >
+                        {scoreCard.treatment.tx1 ? "已達成 (1分)" : "未達成 (0分)"}
+                      </button>
                     </div>
-                    <div className="flex gap-1 shrink-0">
-                      {[0, 1, 2, 3].map(wt => (
-                        <button
-                          key={wt}
-                          onClick={() => updateScoreItem("treatment", "tx2", wt)}
-                          className={`w-9 py-1 px-2 rounded-lg text-xs font-mono font-bold border transition-all ${
-                            scoreCard.treatment.tx2 === wt 
-                              ? "bg-teal-600 border-teal-600 text-white shadow-xs" 
-                              : "bg-white border-slate-350 text-slate-600 hover:bg-slate-50"
-                          }`}
-                        >
-                          {wt}分
-                        </button>
-                      ))}
-                    </div>
-                  </div>
 
-                  <div className="p-3 bg-slate-50 border border-slate-150 rounded-xl flex justify-between items-center gap-2">
-                    <div className="space-y-0.5">
-                      <span className="text-xs text-slate-905 font-bold block">3. 穩定心肌細胞膜優先治療 (2分)</span>
-                      <p className="text-[10px] text-slate-400"><strong>關鍵！</strong>主動給予靜脈 Calcium gluconate 或 Calcium chloride。並說明「高血鉀合併慢心率 EKG 變化時，應優先給鈣保護心肌」，答對得 2 分。</p>
+                    <div className="p-3 bg-slate-50 border border-slate-150 rounded-xl flex justify-between items-center gap-2">
+                      <div className="space-y-0.5">
+                        <span className="text-xs text-slate-910 font-bold block">2. 處理 Unstable bradycardia (3分)</span>
+                        <p className="text-[10px] text-slate-400">考慮給予第一線 Atropine 0.5-1.0mg、無效則備 Epinephrine 或 Dopamine 輸注、同步架設外部節律器(TCP)。</p>
+                      </div>
+                      <div className="flex gap-1 shrink-0">
+                        {[0, 1, 2, 3].map(wt => (
+                          <button
+                            key={wt}
+                            onClick={() => updateScoreItem("treatment", "tx2", wt)}
+                            className={`w-9 py-1 px-2 rounded-lg text-xs font-mono font-bold border transition-all ${
+                              scoreCard.treatment.tx2 === wt 
+                                ? "bg-teal-600 border-teal-600 text-white shadow-xs" 
+                                : "bg-white border-slate-350 text-slate-600 hover:bg-slate-50"
+                            }`}
+                          >
+                            {wt}分
+                          </button>
+                        ))}
+                      </div>
                     </div>
-                    <div className="flex gap-1 shrink-0">
-                      {[0, 1, 2].map(wt => (
-                        <button
-                          key={wt}
-                          onClick={() => updateScoreItem("treatment", "tx3", wt)}
-                          className={`w-9 py-1 px-2 rounded-lg text-xs font-mono font-bold border transition-all ${
-                            scoreCard.treatment.tx3 === wt 
-                              ? "bg-teal-600 border-teal-600 text-white shadow-xs" 
-                              : "bg-white border-slate-350 text-slate-600 hover:bg-slate-50"
-                          }`}
-                        >
-                          {wt}分
-                        </button>
-                      ))}
-                    </div>
-                  </div>
 
-                  <div className="p-3 bg-slate-50 border border-slate-150 rounded-xl flex justify-between items-center gap-2">
-                    <div className="space-y-0.5">
-                      <span className="text-xs text-slate-905 font-bold block">4. 排除與降低血鉀治療 (4分)</span>
-                      <p className="text-[10px] text-slate-400">依據學理開立：Insulin + Glucose 輸注 (1分)、Nebulized Salbutamol (1分)、NaHCO3 (1分)、Lokelma或SPS整腸降鉀劑 (1分)。</p>
+                    <div className="p-3 bg-slate-50 border border-slate-150 rounded-xl flex justify-between items-center gap-2">
+                      <div className="space-y-0.5">
+                        <span className="text-xs text-slate-911 font-bold block">3. 穩定心肌細胞膜優先治療 (2分)</span>
+                        <p className="text-[10px] text-slate-400"><strong>關鍵！</strong>主動給予靜脈 Calcium gluconate 或 Calcium chloride。並說明「高血鉀合併慢心率 EKG 變化時，應優先給鈣保護心肌」，答對得 2 分。</p>
+                      </div>
+                      <div className="flex gap-1 shrink-0">
+                        {[0, 1, 2].map(wt => (
+                          <button
+                            key={wt}
+                            onClick={() => updateScoreItem("treatment", "tx3", wt)}
+                            className={`w-9 py-1 px-2 rounded-lg text-xs font-mono font-bold border transition-all ${
+                              scoreCard.treatment.tx3 === wt 
+                                ? "bg-teal-600 border-teal-600 text-white shadow-xs" 
+                                : "bg-white border-slate-350 text-slate-600 hover:bg-slate-50"
+                            }`}
+                          >
+                            {wt}分
+                          </button>
+                        ))}
+                      </div>
                     </div>
-                    <div className="flex gap-1 shrink-0">
-                      {[0, 1, 2, 3, 4].map(wt => (
-                        <button
-                          key={wt}
-                          onClick={() => updateScoreItem("treatment", "tx4", wt)}
-                          className={`w-9 py-1 px-2 rounded-lg text-xs font-mono font-bold border transition-all ${
-                            scoreCard.treatment.tx4 === wt 
-                              ? "bg-teal-600 border-teal-600 text-white shadow-xs" 
-                              : "bg-white border-slate-350 text-slate-600 hover:bg-slate-50"
-                          }`}
-                        >
-                          {wt}分
-                        </button>
-                      ))}
-                    </div>
-                  </div>
 
-                  <div className="p-3 bg-slate-50 border border-slate-150 rounded-xl flex justify-between items-center gap-2">
-                    <div className="space-y-0.5">
-                      <span className="text-xs text-slate-905 font-bold block">5. 積極處理 BRASH 誘因 (2分)</span>
-                      <p className="text-[10px] text-slate-400">主動停止病患現服用藥物（Bisoprolol, Sacubitril, Furosemide, Spironolactone）（1分），並小心給予 Isotonic Fluid 生理鹽水/等張溶液補水（1分），得2分。</p>
+                    <div className="p-3 bg-slate-50 border border-slate-150 rounded-xl flex justify-between items-center gap-2">
+                      <div className="space-y-0.5">
+                        <span className="text-xs text-slate-911 font-bold block">4. 排除與降低血鉀治療 (4分)</span>
+                        <p className="text-[10px] text-slate-400">依據學理開立：Insulin + Glucose 輸注 (1分)、Nebulized Salbutamol (1分)、NaHCO3 (1分)、Lokelma或SPS整腸降鉀劑 (1分)。</p>
+                      </div>
+                      <div className="flex gap-1 shrink-0">
+                        {[0, 1, 2, 3, 4].map(wt => (
+                          <button
+                            key={wt}
+                            onClick={() => updateScoreItem("treatment", "tx4", wt)}
+                            className={`w-9 py-1 px-2 rounded-lg text-xs font-mono font-bold border transition-all ${
+                              scoreCard.treatment.tx4 === wt 
+                                ? "bg-teal-600 border-teal-600 text-white shadow-xs" 
+                                : "bg-white border-slate-350 text-slate-600 hover:bg-slate-50"
+                            }`}
+                          >
+                            {wt}分
+                          </button>
+                        ))}
+                      </div>
                     </div>
-                    <div className="flex gap-1 shrink-0">
-                      {[0, 1, 2].map(wt => (
-                        <button
-                          key={wt}
-                          onClick={() => updateScoreItem("treatment", "tx5", wt)}
-                          className={`w-9 py-1 px-2 rounded-lg text-xs font-mono font-bold border transition-all ${
-                            scoreCard.treatment.tx5 === wt 
-                              ? "bg-teal-600 border-teal-600 text-white shadow-xs" 
-                              : "bg-white border-slate-350 text-slate-600 hover:bg-slate-50"
-                          }`}
-                        >
-                          {wt}分
-                        </button>
-                      ))}
+
+                    <div className="p-3 bg-slate-50 border border-slate-150 rounded-xl flex justify-between items-center gap-2">
+                      <div className="space-y-0.5">
+                        <span className="text-xs text-slate-911 font-bold block">5. 積極處理 BRASH 誘因 (2分)</span>
+                        <p className="text-[10px] text-slate-400">主動停止病患現服用藥物（Bisoprolol, Sacubitril, Furosemide, Spironolactone）（1分），並小心給予 Isotonic Fluid 生理鹽水/等張溶液補水（1分），得2分。</p>
+                      </div>
+                      <div className="flex gap-1 shrink-0">
+                        {[0, 1, 2].map(wt => (
+                          <button
+                            key={wt}
+                            onClick={() => updateScoreItem("treatment", "tx5", wt)}
+                            className={`w-9 py-1 px-2 rounded-lg text-xs font-mono font-bold border transition-all ${
+                              scoreCard.treatment.tx5 === wt 
+                                ? "bg-teal-600 border-teal-600 text-white shadow-xs" 
+                                : "bg-white border-slate-350 text-slate-600 hover:bg-slate-50"
+                            }`}
+                          >
+                            {wt}分
+                          </button>
+                        ))}
+                      </div>
                     </div>
                   </div>
-                </div>
+                )}
 
                 {/* Global TX rating */}
                 <div className="mt-6 p-4 border border-indigo-150 bg-indigo-50/40 rounded-2xl space-y-2">
                   <div className="flex gap-2 items-center">
                     <Award className="w-5 h-5 text-indigo-600" />
-                    <h5 className="font-sans font-bold text-slate-800 text-sm">治療處置整體評分 (0 ~ 5)</h5>
+                    <h5 className="font-sans font-bold text-slate-800 text-sm">
+                      {caseIdx === 1 ? "治療處置整體評分 (0 ~ 4)" : "治療處置整體評分 (0 ~ 5)"}
+                    </h5>
                   </div>
                   <p className="text-[11px] text-slate-500 leading-tight">
-                    優秀考官應著重於：是否具備 BRASH Syndrome 同步處理高鉀、AKI、病因斷藥與輸液整合處置，而非零散或單一靠常規背誦。
+                    {caseIdx === 1 ? (
+                      "著重評估：是否具備混合性休克的整合急救力、心搏驟停後的反應力及瀕死剖腹產 (PMCS) 的關鍵決策時機。"
+                    ) : (
+                      "優秀考官應著重於：是否具備 BRASH Syndrome 同步處理高鉀、AKI、病因斷藥與輸液整合處置，而非零散或單一靠常規背誦。"
+                    )}
                   </p>
                   <div className="flex flex-wrap gap-1.5 pt-2">
-                    {[0, 1, 2, 3, 4, 5].map(gWt => (
+                    {(caseIdx === 1 ? [0, 1, 2, 3, 4] : [0, 1, 2, 3, 4, 5]).map(gWt => (
                       <button
                         key={gWt}
                         type="button"
@@ -1264,104 +1620,151 @@ export default function CandidateScorer({ onEvaluationSaved, selectedCandidateId
               </div>
             )}
 
-            {/* SECTION 7: 照會溝通 (Consultation) */}
+            {/* SECTION 7: 照會溝通 (Consultation) 或 諮商溝通 (Counseling) */}
             {activeTab === 6 && (
-              <div className="space-y-4 animate-fade-in" id="scorer-section-consult">
-                <div className="space-y-3">
-                  <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest font-sans">
-                    急診科部後線科別照會 (Nephrologist / ICU / ISBAR)
-                  </h4>
-
-                  <div className="p-3 bg-slate-50 border border-slate-150 rounded-xl flex justify-between items-center gap-2">
-                    <span className="text-xs text-slate-800 font-medium">1. 心臟科照會：評估心律不整及導滯（ACS阻斷排除，不忽略高血鉀與BRASH主因）（1分）</span>
-                    <button
-                      onClick={() => updateScoreItem("consultation", "c1", scoreCard.consultation.c1 ? 0 : 1)}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold ${
-                        scoreCard.consultation.c1 ? "bg-teal-600 text-white" : "bg-white border text-slate-600"
-                      }`}
-                    >
-                      {scoreCard.consultation.c1 ? "已達成 (1分)" : "未達成 (0分)"}
-                    </button>
+              caseIdx === 1 ? (
+                /* Case 2: 諮商溝通 (Counseling) */
+                <div className="space-y-4 animate-fade-in" id="scorer-section-counsel-case2">
+                  <div className="space-y-3">
+                    <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest font-sans">
+                      醫病溝通與病況諮商 (Case 2: 子宮破裂病情解說)
+                    </h4>
+                    <p className="text-xs text-slate-600 leading-relaxed bg-slate-50 p-4 border rounded-xl shadow-xs">
+                      <strong>諮商解說核心重點（總分 4 分由本整體評分直接給分）：</strong>
+                      <br />• <strong>病史與成因連結：</strong>主動說明子宮肌瘤切除舊傷薄弱區（為本次足月子宮破裂主因）。
+                      <br />• <strong>病情深度解說：</strong>說明急迫失血（Hb 4.0）及併發發熱（WBC 2萬）之失血性與敗血性混合休克。
+                      <br />• <strong>胎兒窘迫解讀：</strong>解說胎兒極度早產（27 週）合併因母親低灌流與胎盤剝離而缺血缺氧窒息之極高窘迫。
+                      <br />• <strong>處置程序說明：</strong>說明急救措施（LUD傾斜、給氧、配備MTP）以及急診即刻執行剖腹探查（PMCS或急開腹娩出與止血）之急迫手術計畫。
+                      <br />• <strong>良好溝通態度：</strong>全程用詞得體、態度溫和、兼顧同理心、不進行過度口頭保證，充分緩解家屬焦慮。
+                    </p>
                   </div>
 
-                  <div className="p-3 bg-slate-55 border border-slate-150 rounded-xl flex justify-between items-center gap-2">
-                    <span className="text-xs text-slate-800 font-medium">2. 腎臟科照會：針對高血鉀、AKI評估可能之緊急透析需求（1分）</span>
-                    <button
-                      onClick={() => updateScoreItem("consultation", "c2", scoreCard.consultation.c2 ? 0 : 1)}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold ${
-                        scoreCard.consultation.c2 ? "bg-teal-600 text-white" : "bg-white border text-slate-600"
-                      }`}
-                    >
-                      {scoreCard.consultation.c2 ? "已達成 (1分)" : "未達成 (0分)"}
-                    </button>
-                  </div>
-
-                  <div className="p-3 bg-slate-55 border border-slate-150 rounded-xl flex justify-between items-center gap-2">
-                    <span className="text-xs text-slate-800 font-medium">3. ICU（加護病房）照會：考量 bradycardic shock、心因性與低灌流不穩定生理狀態（1分）</span>
-                    <button
-                      onClick={() => updateScoreItem("consultation", "c3", scoreCard.consultation.c3 ? 0 : 1)}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold ${
-                        scoreCard.consultation.c3 ? "bg-teal-600 text-white" : "bg-white border text-slate-600"
-                      }`}
-                    >
-                      {scoreCard.consultation.c3 ? "已達成 (1分)" : "未達成 (0分)"}
-                    </button>
-                  </div>
-
-                  <div className="p-3 bg-slate-55 border border-slate-150 rounded-xl flex justify-between items-center gap-2">
-                    <div className="space-y-0.5">
-                      <span className="text-xs text-slate-905 font-bold block">4. 以 ISBAR 標準方式進行照會溝通 (0-5分)</span>
-                      <p className="text-[10px] text-slate-400 font-sans leading-tight">I(自我介紹) | S(81F慢心跳、低血壓) | B(CHF、Af、Bisoprolol用藥) | A(重度脫水與BRASH疑診) | R(已給鈣並尋求ICU床位/洗腎)</p>
+                  {/* Case 2 has no individual checklists, but has global rating of 0-4 */}
+                  <div className="mt-6 p-4 border border-indigo-150 bg-indigo-50/40 rounded-2xl space-y-2">
+                    <div className="flex gap-2 items-center">
+                      <Award className="w-5 h-5 text-indigo-600" />
+                      <h5 className="font-sans font-bold text-slate-800 text-sm">諮商溝通與病情解說整體評分 (0 ~ 4 分)</h5>
                     </div>
-                    <div className="flex gap-1 shrink-0 font-sans">
-                      {[0, 1, 2, 3, 4, 5].map(wt => (
+                    <p className="text-[11px] text-slate-500 leading-tight">
+                      評估考生是否能夠使用非醫學專用詞彙、具有溫度與同理架構，為家屬說明這項產科致死率極高的極重症，並給予清晰的治療方向。
+                    </p>
+                    <div className="flex flex-wrap gap-1.5 pt-2 font-mono">
+                      {[0, 1, 2, 3, 4].map(gWt => (
                         <button
-                          key={wt}
-                          onClick={() => updateScoreItem("consultation", "c4", wt)}
-                          className={`w-9 py-1 px-2 rounded-lg text-xs font-mono font-bold border transition-all ${
-                            scoreCard.consultation.c4 === wt 
-                              ? "bg-teal-600 border-teal-600 text-white shadow-xs" 
-                              : "bg-white border-slate-350 text-slate-600 hover:bg-slate-50"
+                          key={gWt}
+                          type="button"
+                          onClick={() => updateScoreItem("counseling", "global", gWt)}
+                          className={`py-1.5 px-3 rounded-lg text-xs font-bold border transition-all ${
+                            scoreCard.counseling.global === gWt 
+                              ? "bg-indigo-600 border-indigo-600 text-white shadow-xs" 
+                              : "bg-white border-slate-300 text-slate-600 hover:bg-slate-50"
                           }`}
                         >
-                          {wt}分
+                          {gWt} 分
                         </button>
                       ))}
                     </div>
                   </div>
                 </div>
+              ) : (
+                /* Case 1: 照會溝通 (Consultation) */
+                <div className="space-y-4 animate-fade-in" id="scorer-section-consult">
+                  <div className="space-y-3">
+                    <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest font-sans">
+                      急診科部後線科別照會 (Nephrologist / ICU / ISBAR)
+                    </h4>
 
-                {/* Global Consult rating */}
-                <div className="mt-6 p-4 border border-indigo-150 bg-indigo-50/40 rounded-2xl space-y-2">
-                  <div className="flex gap-2 items-center">
-                    <Award className="w-5 h-5 text-indigo-600" />
-                    <h5 className="font-sans font-bold text-slate-800 text-sm">照會溝通整體評分 (0 ~ 5)</h5>
-                  </div>
-                  <p className="text-[11px] text-slate-500 leading-tight">
-                    評核考生是否能清楚使用 ISBAR 架構，說明 BRASH 疑診、脫水本質、和目前的緊急程度並做出妥適的轉線安排。
-                  </p>
-                  <div className="flex flex-wrap gap-1.5 pt-2">
-                    {[0, 1, 2, 3, 4, 5].map(gWt => (
+                    <div className="p-3 bg-slate-50 border border-slate-150 rounded-xl flex justify-between items-center gap-2">
+                      <span className="text-xs text-slate-800 font-medium">1. 心臟科照會：評估心律不整及導滯（ACS阻斷排除，不忽略高血鉀與BRASH主因）（1分）</span>
                       <button
-                        key={gWt}
-                        type="button"
-                        onClick={() => updateScoreItem("consultation", "global", gWt)}
-                        className={`py-1.5 px-3 rounded-lg text-xs font-bold border transition-all ${
-                          scoreCard.consultation.global === gWt 
-                            ? "bg-indigo-600 border-indigo-600 text-white shadow-xs" 
-                            : "bg-white border-slate-300 text-slate-600 hover:bg-slate-50"
+                        onClick={() => updateScoreItem("consultation", "c1", scoreCard.consultation.c1 ? 0 : 1)}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold ${
+                          scoreCard.consultation.c1 ? "bg-teal-600 text-white" : "bg-white border text-slate-600"
                         }`}
                       >
-                        {gWt} 分
+                        {scoreCard.consultation.c1 ? "已達成 (1分)" : "未達成 (0分)"}
                       </button>
-                    ))}
+                    </div>
+
+                    <div className="p-3 bg-slate-55 border border-slate-150 rounded-xl flex justify-between items-center gap-2">
+                      <span className="text-xs text-slate-800 font-medium">2. 腎臟科照會：針對高血鉀、AKI評估可能之緊急透析需求（1分）</span>
+                      <button
+                        onClick={() => updateScoreItem("consultation", "c2", scoreCard.consultation.c2 ? 0 : 1)}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold ${
+                          scoreCard.consultation.c2 ? "bg-teal-600 text-white" : "bg-white border text-slate-600"
+                        }`}
+                      >
+                        {scoreCard.consultation.c2 ? "已達成 (1分)" : "未達成 (0分)"}
+                      </button>
+                    </div>
+
+                    <div className="p-3 bg-slate-55 border border-slate-150 rounded-xl flex justify-between items-center gap-2">
+                      <span className="text-xs text-slate-800 font-medium">3. ICU（加護病房）照會：考量 bradycardic shock、心因性與低灌流不穩定生理狀態（1分）</span>
+                      <button
+                        onClick={() => updateScoreItem("consultation", "c3", scoreCard.consultation.c3 ? 0 : 1)}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold ${
+                          scoreCard.consultation.c3 ? "bg-teal-600 text-white" : "bg-white border text-slate-600"
+                        }`}
+                      >
+                        {scoreCard.consultation.c3 ? "已達成 (1分)" : "未達成 (0分)"}
+                      </button>
+                    </div>
+
+                    <div className="p-3 bg-slate-55 border border-slate-150 rounded-xl flex justify-between items-center gap-2">
+                      <div className="space-y-0.5">
+                        <span className="text-xs text-slate-905 font-bold block">4. 以 ISBAR 標準方式進行照會溝通 (0-5分)</span>
+                        <p className="text-[10px] text-slate-400 font-sans leading-tight">I(自我介紹) | S(81F慢心跳、低血壓) | B(CHF、Af、Bisoprolol用藥) | A(重度脫水與BRASH疑診) | R(已給鈣並尋求ICU床位/洗腎)</p>
+                      </div>
+                      <div className="flex gap-1 shrink-0 font-sans">
+                        {[0, 1, 2, 3, 4, 5].map(wt => (
+                          <button
+                            key={wt}
+                            onClick={() => updateScoreItem("consultation", "c4", wt)}
+                            className={`w-9 py-1 px-2 rounded-lg text-xs font-mono font-bold border transition-all ${
+                              scoreCard.consultation.c4 === wt 
+                                ? "bg-teal-600 border-teal-600 text-white shadow-xs" 
+                                : "bg-white border-slate-350 text-slate-600 hover:bg-slate-50"
+                            }`}
+                          >
+                            {wt}分
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Global Consult rating */}
+                  <div className="mt-6 p-4 border border-indigo-150 bg-indigo-50/40 rounded-2xl space-y-2">
+                    <div className="flex gap-2 items-center">
+                      <Award className="w-5 h-5 text-indigo-600" />
+                      <h5 className="font-sans font-bold text-slate-800 text-sm">照會溝通整體評分 (0 ~ 5)</h5>
+                    </div>
+                    <p className="text-[11px] text-slate-500 leading-tight">
+                      評核考生是否能清楚使用 ISBAR 架構，說明 BRASH 疑診、脫水本質、和目前的緊急程度並做出妥適的轉線安排。
+                    </p>
+                    <div className="flex flex-wrap gap-1.5 pt-2">
+                      {[0, 1, 2, 3, 4, 5].map(gWt => (
+                        <button
+                          key={gWt}
+                          type="button"
+                          onClick={() => updateScoreItem("consultation", "global", gWt)}
+                          className={`py-1.5 px-3 rounded-lg text-xs font-bold border transition-all ${
+                            scoreCard.consultation.global === gWt 
+                              ? "bg-indigo-600 border-indigo-600 text-white shadow-xs" 
+                              : "bg-white border-slate-300 text-slate-600 hover:bg-slate-50"
+                          }`}
+                        >
+                          {gWt} 分
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 </div>
-              </div>
+              )
             )}
 
-            {/* SECTION 8: 諮商溝通 (Counseling) */}
-            {activeTab === 7 && (
+            {/* SECTION 8: 諮商溝通 (Counseling) - 僅在 Case 1 顯示，因為 Case 2 只有 7 個分組（activeTab 0 到 6） */}
+            {activeTab === 7 && caseIdx !== 1 && (
               <div className="space-y-4 animate-fade-in" id="scorer-section-counsel">
                 <div className="space-y-3">
                   <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest font-sans">
@@ -1469,8 +1872,8 @@ export default function CandidateScorer({ onEvaluationSaved, selectedCandidateId
               <ChevronLeft className="w-3.5 h-3.5" /> 上一面向
             </button>
             <button
-              onClick={() => setActiveTab(prev => Math.min(7, prev + 1))}
-              disabled={activeTab === 7}
+              onClick={() => setActiveTab(prev => Math.min(caseIdx === 1 ? 6 : 7, prev + 1))}
+              disabled={activeTab === (caseIdx === 1 ? 6 : 7)}
               className="px-3 py-1.5 rounded-lg bg-teal-600 text-xs font-semibold text-white flex items-center gap-1 disabled:opacity-50"
             >
               下一面向 <ChevronRight className="w-3.5 h-3.5" />

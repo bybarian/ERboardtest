@@ -38,6 +38,9 @@ export interface ScoreCard {
     s6: number; // 用藥史 (0-2)
     s7: number; // 藥物過量或重複服藥 (0-2)
     s8: number; // 個人及家庭支持狀況 (0-2)
+    s9?: number; // Case 2: 個人病史 G2P1A0
+    s10?: number; // Case 2: 旅遊史
+    s11?: number; // Case 2: 接觸史
     global: number; // 史整體評分 (0-7, L1-L4)
     feedback: string;
   };
@@ -49,6 +52,9 @@ export interface ScoreCard {
     p3: number; // 水分狀態 (0-2)
     p4: number; // 感染來源 (0-2)
     p5: number; // 意識與神經學 (0-2)
+    p6?: number; // Case 2: 子宮
+    p7?: number; // Case 2: 胎兒檢查
+    p8?: number; // Case 2: 皮膚
     global: number; // 身體診察整體評分 (0-5)
     feedback: string;
   };
@@ -68,6 +74,7 @@ export interface ScoreCard {
     i1: number; // ECG (0-1)
     i2: number; // Blood test (0-2)
     i3: number; // CXR (0-1)
+    i4?: number; // Case 2: 尋找感染源 (0-2)
     global: number; // 檢驗檢查整體評分 (0-8)
     feedback: string;
   };
@@ -89,6 +96,8 @@ export interface ScoreCard {
     tx3: number; // 立即治療高血鉀穩定心肌 (0-2)
     tx4: number; // 降低血鉀 (0-4)
     tx5: number; // 處理 BRASH 誘因 (0-2)
+    tx6?: number; // Case 2: LUD Left uterine displacement (0-2)
+    tx7?: number; // Case 2: PMCS Perimortem C-section (0-2)
     global: number; // 治療處置整體評分 (0-5)
     feedback: string;
   };

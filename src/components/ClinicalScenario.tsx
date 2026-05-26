@@ -35,6 +35,7 @@ export default function ClinicalScenario({ caseIdx = 0 }: { caseIdx?: number }) 
   });
 
   const [selectedEcg, setSelectedEcg] = useState<"today" | "previous">("today");
+  const [lastLocalClick, setLastLocalClick] = useState<number>(0);
   const [ecg1Failed, setEcg1Failed] = useState<boolean>(false);
   const [ecg2Failed, setEcg2Failed] = useState<boolean>(false);
   const [cxrFailed, setCxrFailed] = useState<boolean>(false);
@@ -42,6 +43,9 @@ export default function ClinicalScenario({ caseIdx = 0 }: { caseIdx?: number }) 
   // Poll the scenario visibility state from the server to keep candidates' view instantly updated
   useEffect(() => {
     const fetchVisibility = () => {
+      if (Date.now() - lastLocalClick < 4500) {
+        return;
+      }
       fetch("/api/scenario-visibility")
         .then((res) => {
           if (!res.ok) throw new Error("API not active on this host");
@@ -69,9 +73,10 @@ export default function ClinicalScenario({ caseIdx = 0 }: { caseIdx?: number }) 
     fetchVisibility();
     const interval = setInterval(fetchVisibility, 3000);
     return () => clearInterval(interval);
-  }, []);
+  }, [lastLocalClick]);
 
   const handleToggleVisibility = (key: keyof typeof visibility) => {
+    setLastLocalClick(Date.now());
     const newVal = !visibility[key];
     
     // 1. Optimistic local & cache state update to support instant responsiveness (even in offline/static environments)
