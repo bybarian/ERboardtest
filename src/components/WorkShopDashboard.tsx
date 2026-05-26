@@ -73,6 +73,33 @@ export default function WorkShopDashboard({ onStartScoring }: WorkShopDashboardP
     }
   };
 
+  // Text-To-Speech (TTS) Voice Broadcaster
+  const speakText = (text: string) => {
+    if (!soundEnabled) return;
+    try {
+      if ("speechSynthesis" in window) {
+        // Cancel first to clear preceding queues
+        window.speechSynthesis.cancel();
+        
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = "zh-TW";
+        utterance.rate = 1.0;
+        utterance.pitch = 1.0;
+        
+        // Find suitable voice if applicable
+        const voices = window.speechSynthesis.getVoices();
+        const zhVoice = voices.find(v => v.lang === "zh-TW" || v.lang.startsWith("zh-HK") || v.lang.startsWith("zh-CN") || v.lang.startsWith("zh"));
+        if (zhVoice) {
+          utterance.voice = zhVoice;
+        }
+        
+        window.speechSynthesis.speak(utterance);
+      }
+    } catch (err) {
+      console.warn("Speech synthesis error", err);
+    }
+  };
+
   useEffect(() => {
     // Current timestamp display
     const timer = setInterval(() => {
@@ -96,10 +123,16 @@ export default function WorkShopDashboard({ onStartScoring }: WorkShopDashboardP
           const next = prev - 1;
           if (next === 300) {
             playChimeSound("warning5");
+            speakText("報告，考核還剩五分鐘。");
           } else if (next === 180) {
             playChimeSound("warning3");
+            speakText("還剩三分鐘。");
+          } else if (next === 60) {
+            playChimeSound("warning3");
+            speakText("還剩一分鐘。");
           } else if (next === 0) {
             playChimeSound("completed");
+            speakText("時間到。模擬面試結束。");
           }
           return next;
         });
@@ -1006,10 +1039,34 @@ export default function WorkShopDashboard({ onStartScoring }: WorkShopDashboardP
                   className="text-amber-400 hover:text-amber-500 active:scale-95 transition-all text-[10px] font-bold underline cursor-pointer"
                   title="測試內置大會完試鈴聲"
                 >
-                  🔔 測試鈴聲
+                  🔔 測試響鈴
+                </button>
+                <span className="text-[#A8A297]">•</span>
+                <button 
+                  onClick={() => speakText("還剩三分鐘。")}
+                  className="text-teal-500 hover:text-teal-600 active:scale-95 transition-all text-[10px] font-bold underline cursor-pointer"
+                  title="測試三分鐘剩餘語音"
+                >
+                  🗣️ 試聽3分
+                </button>
+                <span className="text-[#A8A297]">•</span>
+                <button 
+                  onClick={() => speakText("還剩一分鐘。")}
+                  className="text-teal-500 hover:text-teal-600 active:scale-95 transition-all text-[10px] font-bold underline cursor-pointer"
+                  title="測試一分鐘剩餘語音"
+                >
+                  🗣️ 試聽1分
+                </button>
+                <span className="text-[#A8A297]">•</span>
+                <button 
+                  onClick={() => speakText("時間到。模擬面試結束。")}
+                  className="text-rose-400 hover:text-rose-500 active:scale-95 transition-all text-[10px] font-bold underline cursor-pointer"
+                  title="測試時間到結束語音"
+                >
+                  🗣️ 試聽結束
                 </button>
                 {timeLeft < 180 && (
-                  <span className="text-rose-400 font-bold ml-1">
+                  <span className="text-rose-400 font-bold ml-1 animate-pulse">
                     ⚠️ 剩餘不到三分！
                   </span>
                 )}
@@ -1223,22 +1280,43 @@ export default function WorkShopDashboard({ onStartScoring }: WorkShopDashboardP
                 </span>
               </div>
               
-              <div className="mt-4 flex items-center gap-4 text-xs md:text-sm text-zinc-400 font-medium bg-zinc-950/60 px-4 py-2 rounded-full border border-zinc-900">
+              <div className="mt-4 flex items-center justify-center gap-3 text-xs md:text-sm text-zinc-400 font-medium bg-zinc-950/60 px-5 py-2.5 rounded-full border border-zinc-900 flex-wrap max-w-3xl">
                 <span className="flex items-center gap-1.5">
                   <span className="w-2.5 h-2.5 rounded-full bg-indigo-500"></span>
                   限時: 15分鐘
                 </span>
                 <span>•</span>
                 <span className="flex items-center gap-1.5 text-rose-400">
-                  <span className="w-2.5 h-2.5 rounded-full bg-rose-500"></span>
-                  3分鐘、5分鐘語音音效警示
+                  <span className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-pulse"></span>
+                  3-1-5分自動語音/警報
                 </span>
                 <span>•</span>
                 <button 
                   onClick={() => playChimeSound("completed")} 
-                  className="text-amber-400 hover:underline flex items-center gap-1 ml-1 font-bold cursor-pointer"
+                  className="text-amber-400 hover:text-amber-500 hover:underline flex items-center gap-1 font-bold cursor-pointer"
                 >
-                  🔔 手動測試完試大鈴聲
+                  🔔 測試響鈴
+                </button>
+                <span>•</span>
+                <button 
+                  onClick={() => speakText("還剩三分鐘。")} 
+                  className="text-teal-400 hover:text-teal-500 hover:underline flex items-center gap-1 font-bold cursor-pointer"
+                >
+                  🗣️ 試聽3分
+                </button>
+                <span>•</span>
+                <button 
+                  onClick={() => speakText("還剩一分鐘。")} 
+                  className="text-teal-400 hover:text-teal-500 hover:underline flex items-center gap-1 font-bold cursor-pointer"
+                >
+                  🗣️ 試聽1分
+                </button>
+                <span>•</span>
+                <button 
+                  onClick={() => speakText("時間到。模擬面試結束。")} 
+                  className="text-rose-400 hover:text-rose-500 hover:underline flex items-center gap-1 font-bold cursor-pointer"
+                >
+                  🗣️ 試聽結束
                 </button>
               </div>
               
